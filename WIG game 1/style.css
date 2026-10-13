@@ -581,6 +581,17 @@ button { font-family: var(--font); cursor: pointer; }
   transition: background 0.15s, box-shadow 0.15s;
 }
 .tb-start:hover { background: rgba(108,92,231,0.14); box-shadow: 0 0 0 3px var(--accent-glow); }
+/* 「提示」按钮：仅简单难度显示，位于「开始」左侧（见 index.html #tb-hint） */
+.tb-hint {
+  padding: 7px 14px; border-radius: 10px; cursor: pointer;
+  color: var(--accent); font-weight: 600; letter-spacing: 1px; font-size: 13px;
+  background: rgba(108,92,231,0.10);
+  border: 1px solid rgba(108,92,231,0.22);
+  transition: background 0.15s, box-shadow 0.15s, transform 0.1s;
+  white-space: nowrap;
+}
+.tb-hint:hover { background: rgba(108,92,231,0.20); box-shadow: 0 0 0 3px var(--accent-glow); }
+.tb-hint:active { transform: scale(0.96); }
 .tb-divider { width: 1px; height: 24px; background: var(--line); }
 #tb-windows { display: flex; gap: 4px; flex: 0 1 auto; overflow: hidden; justify-content: center; max-width: 60%; }
 .tb-win {
@@ -2165,6 +2176,7 @@ button { font-family: var(--font); cursor: pointer; }
   /* —— 任务栏 —— */
   #taskbar { left: 6px; right: 6px; bottom: calc(6px + env(safe-area-inset-bottom)); height: 48px; padding: 0 8px; gap: 4px; border-radius: 12px; }
   .tb-start { padding: 6px 12px; font-size: 12px; letter-spacing: 0; }
+  .tb-hint { padding: 6px 10px; font-size: 12px; letter-spacing: 0; }
   #tb-windows { max-width: 44%; }
   .tb-win { padding: 5px 8px; font-size: 11.5px; min-width: 0; }
   .tb-win span { overflow: hidden; text-overflow: ellipsis; }
