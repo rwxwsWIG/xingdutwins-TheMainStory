@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#dfe6f0">
+<title>星都OS 2066 — 《星都双子》</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+
+<div id="boot-screen" class="fullscreen-layer">
+  <div class="boot-inner">
+    <div class="boot-logo"><img src="assets/os_logo.png" alt="星都OS"></div>
+    <h1 class="boot-title">星都 OS<span>2066</span></h1>
+    <div class="boot-sub">星都市政务云 · 统一认证桌面</div>
+    <div class="boot-bar"><div class="boot-bar-fill" id="boot-fill"></div></div>
+    <div class="boot-msg" id="boot-msg">正在建立加密连接…</div>
+  </div>
+</div>
+
+
+<div id="intro-screen" class="fullscreen-layer hidden">
+  <div class="intro-card">
+    <div class="intro-tag">网页互动游戏 · WIG</div>
+    <h2>星都双子</h2>
+    <p class="intro-meta">类型：悬疑 / 科幻 / 反乌托邦 &nbsp;|&nbsp; 时间：2066年 &nbsp;|&nbsp; 地点：星都市</p>
+    <div class="intro-body">
+      <p>2066年10月，星都市的秋天。你是一位刚毕业的新闻系学生，在独立网络媒体《星都观察者》实习。你的第一篇报道任务本是采访"星都智慧城市"的便民措施——</p>
+      <p>直到一封匿名求助邮件亮起：18岁的少年<b>林北辰</b>，父母四天前离奇失踪，两张未使用的高铁票，和一个在楼下打探的黑色西装男人。</p>
+      <p><b>本游戏内容纯属虚构，与现实世界任何人、事、机构无关。</b></p>
+    </div>
+    <div class="intro-hint"> 点击桌面图标打开应用 · 剧情线索需要"搜索"与"对话"来解锁 · 流程约30-45分钟</div>
+    <div class="intro-device"> 推荐佩戴耳机游玩<br> 电脑 / 平板 / 手机均可游玩 · 手机端已适配触屏操作，电脑端体验更佳</div>
+    <div class="diff-row">
+      <button class="btn btn-primary btn-lg diff-btn" data-action="start-game" data-arg="easy">
+        <span class="diff-t"> 简单难度</span>
+        <span class="diff-d">显示任务目标与提示</span>
+      </button>
+      <button class="btn btn-lg diff-btn" data-action="start-game" data-arg="normal">
+        <span class="diff-t"> 普通难度</span>
+        <span class="diff-d">无任何辅助，纯靠自己</span>
+      </button>
+    </div>
+    <div class="diff-note">选择难度后将开始游戏 · 普通难度适合喜欢自己摸索的玩家（可配合攻略文件游玩）</div>
+    <div class="intro-ai"> 【部分素材由AI生成】</div>
+    <div id="quick-replay-bar" class="hidden">
+      <div class="qr-note"> 你已通关过本作，可跳过前五章，直接从「最后的抉择」开始体验其他结局。
+        <button class="btn btn-primary" data-action="quick-replay"> 快速重玩（从第五章开始）</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<div id="hire-screen" class="fullscreen-layer hidden">
+  <div class="hire-chat" id="hire-chat">
+    <div class="hc-head">
+      <span class="hc-back">‹</span>
+      <div class="hc-avatar hc-boss">陈</div>
+      <div class="hc-info">
+        <div class="hc-name">陈姐 <span class="hc-tag">主编</span></div>
+        <div class="hc-org">星都观察者 · <span class="hc-read">● 已读</span> · 2066-10-11 10:01</div>
+      </div>
+    </div>
+    
+    <div class="hc-resume-bar" id="hc-resume-bar">
+      <div class="hrb-head" data-action="toggle-resume">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-0.16em"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4"/><path d="M10 12h6M10 16h6"/></svg> 你的简历 · <b class="hrb-name">沈砚</b></span>
+        <span class="hrb-fold">▾</span>
+      </div>
+      <div class="hrb-body">
+        <div class="hr-row"><span>姓名</span><b>沈砚</b></div>
+        <div class="hr-row"><span>性别</span><b>男</b></div>
+        <div class="hr-row"><span>学历</span><b>星都传媒大学 · 新闻系 2066届</b></div>
+        <div class="hr-row"><span>实习经历</span><b>星都电视都市频道新闻部（被裁）</b></div>
+        <div class="hr-row"><span>代表作</span><b>《城中村拆迁手记》· 未刊稿 <span class="hrb-link" data-action="doc-read">试读</span></b></div>
+        <div class="hr-row"><span>技能</span><b>深访 / 数据整理 / 基础反侦察</b></div>
+        <div class="hr-row"><span>期望薪资</span><b>面议</b></div>
+      </div>
+    </div>
+    <div class="hc-messages" id="hc-messages"></div>
+    <div class="hc-input">
+      <div class="hc-input-bar" id="hc-input-bar"><span class="hc-input-text" id="hc-input-text">...</span></div>
+      <div class="hc-action" id="hc-action"></div>
+    </div>
+  </div>
+
+  
+  <div class="hire-card-wrap hidden" id="hire-card-wrap">
+    <div class="hire-card">
+      <div class="hire-tag">星都观察者 · 编辑部</div>
+      <h2>录用通知</h2>
+      <p class="hire-meta">实习记者岗位 · 入职编号 XD-1024 · 2066-10-12</p>
+      <div class="hire-body">
+        <p>投出去的简历在第十七个夜晚有了回音——不是自动回复，是<b>陈姐</b>亲自发来的录用通知：</p>
+        <div class="hire-quote">「你的笔头够快，胆子够大。明天九点，来编辑部报到。」</div>
+        <p>三轮面试，五个竞争者，最后只剩你一个人站在主编办公室。陈姐只问了你一个问题：</p>
+        <div class="hire-qa">
+          <span class="hq-q">「如果给你一台电脑，你能查到什么？」</span>
+          <span class="hq-a">「真相。」</span>
+        </div>
+        <p>他们需要一个能操作政务云的实习生——你的星都OS 2066 账号与工牌，会在入职当天发放。</p>
+      </div>
+      <button class="btn btn-primary btn-lg" data-action="hire-start"> 确认入职 · 开启星都OS</button>
+      <div class="hire-note">入职后你将获得星都OS 2066 政务云账号 · 你的第一篇报道任务已经派发</div>
+    </div>
+  </div>
+</div>
+
+
+<div id="desktop" class="hidden">
+  <div class="desktop-wallpaper">
+    <div class="wall-city"></div>
+    <div class="wall-flow"></div>
+  </div>
+  <div class="desktop-watermark">
+    <div class="wm-big">星都市</div>
+    <div class="wm-sub">XINGDU METROPOLITAN · POPULATION 41,000,000 · STATUS: STABLE</div>
+  </div>
+
+  <div id="icon-area"></div>
+
+  
+  <div id="objective-panel" data-action="open-objectives">
+    <div class="op-head">
+      <span class="op-title">任务目标</span>
+      <span class="op-arrow">线索 ›</span>
+      <span class="op-collapse" data-action="toggle-objective" title="收起 / 展开">‹</span>
+    </div>
+    <div class="op-current" id="objective-text">正在初始化…</div>
+    <ul class="op-list" id="objective-list"></ul>
+  </div>
+
+  
+  <div id="taskbar">
+    <div class="tb-start" data-action="open-start">✦ 开始</div>
+    <div class="tb-divider"></div>
+    <div id="tb-windows"></div>
+    <div class="tb-right">
+      <div class="tb-clock"><span id="clock-date">2066-10-12</span><span id="clock-time">09:23</span></div>
+    </div>
+  </div>
+
+  
+  <div id="start-menu" class="hidden">
+    <div class="sm-header">星都 OS · 用户：沈砚（实习记者）</div>
+    <div id="sm-app-list"></div>
+  </div>
+
+  
+  <div id="window-layer"></div>
+</div>
+
+
+<div id="modal-layer" class="hidden">
+  <div id="modal-box"></div>
+</div>
+
+
+<div id="monitor-screen" class="fullscreen-layer hidden">
+  <div class="monitor-inner" id="monitor-inner"></div>
+</div>
+
+
+<div id="newsburst-screen" class="fullscreen-layer hidden">
+  <div class="newsburst-inner" id="newsburst-inner"></div>
+</div>
+
+
+<div id="peephole-screen" class="fullscreen-layer hidden">
+  <div class="peep-desc" id="peep-desc"></div>
+  <div class="peep-caption" id="peep-caption">门外站着一个和你一模一样的少年。他的眼神，很冷。</div>
+  <div class="peep-note" id="peep-tablet">一个信封被塞进了门缝</div>
+  <button class="btn btn-primary" data-action="close-peephole">放下猫眼</button>
+</div>
+
+
+<div id="ending-screen" class="fullscreen-layer hidden">
+  <div class="ending-inner">
+    <div class="ending-tag" id="ending-tag">结局达成</div>
+    <h2 id="ending-title"></h2>
+    <div class="ending-body" id="ending-body"></div>
+    <div class="ending-quote" id="ending-quote"></div>
+    <button class="btn btn-primary btn-lg" id="ending-main-btn" data-action="to-intro">回到简介</button>
+    <div class="ending-tip">回到简介可快速体验其他结局</div>
+    <a class="ending-survey" href="https://v.wjx.cn/vm/wFWZB0W.aspx#" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="4" width="12" height="17" rx="2"/><path d="M9 4a3 3 0 0 1 6 0"/><path d="M9 10h6M9 14h6"/></svg> 问卷 · 你的反馈很重要 ——《星都双子》玩家问卷，欢迎填写 →</a>
+  </div>
+</div>
+
+
+<div id="toast-area"></div>
+
+<script src="game.js"></script>
+</body>
+</html>

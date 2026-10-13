@@ -1,0 +1,9 @@
+{
+  "name": "xingdu-shuangzi",
+  "version": "1.0.0",
+  "private": true,
+  "description": "《星都双子》— 网页互动游戏（WIG）· 悬疑 / 科幻 / 反乌托邦",
+  "scripts": {
+    "validate": "node scripts/validate.js"
+  }
+}

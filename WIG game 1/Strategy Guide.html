@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>星都双子1 · 完整攻略</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Ccircle cx='9' cy='12' r='4' fill='none' stroke='%2337d6c3' stroke-width='2'/%3E%3Ccircle cx='15' cy='12' r='4' fill='none' stroke='%23f0b356' stroke-width='2'/%3E%3C/svg%3E">
+<style>
+  :root{
+    --bg:#0a0f1a; --panel:#101a2c; --panel2:#0d1524; --line:#22314e;
+    --ink:#dce6f5; --dim:#7d8ca6; --dim2:#5b6b88;
+    --cy:#37d6c3; --gold:#f0b356; --red:#e06c75; --green:#8fc99a; --blue:#7fb8d8;
+    --mono:Consolas,"Courier New",monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{background:var(--bg);color:var(--ink);font-family:"Noto Sans SC","Microsoft YaHei","PingFang SC",sans-serif;line-height:1.75;}
+  .wrap{max-width:980px;margin:0 auto;padding:0 20px 80px;}
+  a{color:var(--cy);text-decoration:none;}
+  a:hover{text-decoration:underline;}
+
+  /* ===== Hero ===== */
+  .hero{position:relative;padding:64px 0 44px;border-bottom:1px solid var(--line);margin-bottom:8px;}
+  .hero::before{content:"";position:absolute;inset:0;background:radial-gradient(600px 240px at 20% 0%,rgba(55,214,195,.09),transparent 70%),radial-gradient(500px 200px at 90% 20%,rgba(240,179,86,.07),transparent 70%);pointer-events:none;}
+  .twins{display:flex;gap:14px;align-items:center;margin-bottom:22px;}
+  .dot{width:22px;height:22px;border-radius:50%;}
+  .dotA{background:rgba(55,214,195,.14);border:2px solid var(--cy);box-shadow:0 0 18px rgba(55,214,195,.5);}
+  .dotB{background:rgba(240,179,86,.14);border:2px solid var(--gold);box-shadow:0 0 18px rgba(240,179,86,.4);}
+  .hero h1{font-size:clamp(34px,6vw,56px);font-weight:800;letter-spacing:2px;color:#fff;line-height:1.15;}
+  .hero .sub{margin-top:14px;font-size:15px;color:var(--dim);max-width:640px;}
+  .hero .sub b{color:var(--ink);font-weight:600;}
+  .hero .meta{margin-top:18px;display:flex;flex-wrap:wrap;gap:8px;}
+  .tag{font-size:13px;padding:4px 12px;border-radius:999px;border:1px solid var(--line);color:var(--dim);background:var(--panel2);}
+  .tag.hot{border-color:rgba(240,179,86,.45);color:var(--gold);}
+  .tag.warn{border-color:rgba(224,108,117,.45);color:var(--red);}
+
+  /* ===== Sticky nav ===== */
+  nav{position:sticky;top:0;z-index:50;background:rgba(10,15,26,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);margin:0 -20px;padding:0 20px;}
+  .nav-inner{max-width:980px;margin:0 auto;display:flex;gap:4px;overflow-x:auto;white-space:nowrap;padding:8px 0;}
+  .nav-inner a{font-size:13px;color:var(--dim);padding:6px 10px;border-radius:8px;}
+  .nav-inner a:hover{color:var(--cy);background:rgba(55,214,195,.08);text-decoration:none;}
+
+  /* ===== Sections ===== */
+  section{padding:44px 0 8px;}
+  h2{font-size:22px;font-weight:800;color:#fff;margin-bottom:6px;display:flex;align-items:baseline;gap:10px;}
+  h2 .no{font-family:var(--mono);font-size:13px;color:var(--cy);letter-spacing:1px;}
+  .sec-note{font-size:13px;color:var(--dim2);margin-bottom:18px;}
+  h3{font-size:16px;font-weight:700;color:var(--ink);margin:26px 0 10px;}
+  p{margin-bottom:10px;}
+  .lead{font-size:14px;color:var(--dim);margin-bottom:16px;}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin-bottom:14px;}
+  .panel .tt{font-weight:700;color:var(--cy);font-size:14px;margin-bottom:8px;}
+  ul,ol{margin:6px 0 10px 22px;font-size:14px;}
+  li{margin-bottom:6px;}
+  .k{color:var(--gold);font-weight:700;}
+  .r{color:var(--red);font-weight:700;}
+  .g{color:var(--green);font-weight:700;}
+  .mono{font-family:var(--mono);}
+  .code{font-family:var(--mono);background:var(--panel2);border:1px solid var(--line);border-radius:6px;padding:2px 8px;font-size:13px;color:var(--cy);}
+  .callout{border-left:3px solid var(--gold);background:rgba(240,179,86,.07);border-radius:0 10px 10px 0;padding:12px 16px;font-size:13.5px;margin:12px 0;}
+  .callout.red{border-left-color:var(--red);background:rgba(224,108,117,.07);}
+  .callout.cy{border-left-color:var(--cy);background:rgba(55,214,195,.06);}
+
+  /* ===== Quick answers table ===== */
+  table{width:100%;border-collapse:collapse;margin:12px 0 18px;font-size:14px;table-layout:fixed;}
+  colgroup col.c1{width:30%;}
+  colgroup col.c2{width:70%;}
+  th{background:var(--panel2);color:var(--cy);text-align:left;font-weight:700;font-size:13px;padding:10px 12px;border:1px solid var(--line);}
+  td{padding:10px 12px;border:1px solid var(--line);vertical-align:top;color:var(--ink);}
+  tr:nth-child(even) td{background:rgba(16,26,44,.55);}
+  td .code{white-space:normal;word-break:break-all;}
+
+  /* ===== Flow steps ===== */
+  .step{position:relative;padding:16px 18px 16px 52px;border:1px solid var(--line);border-radius:12px;background:var(--panel);margin-bottom:12px;}
+  .step .num{position:absolute;left:16px;top:16px;width:26px;height:26px;border-radius:8px;background:rgba(55,214,195,.12);border:1px solid rgba(55,214,195,.4);color:var(--cy);font-family:var(--mono);font-size:13px;display:flex;align-items:center;justify-content:center;font-weight:700;}
+  .step h4{font-size:15px;color:#fff;margin-bottom:6px;}
+  .step h4 .dur{font-size:11px;color:var(--dim2);font-weight:400;margin-left:8px;}
+  .step p,.step li{font-size:13.5px;}
+
+  /* ===== Endings ===== */
+  .endings{display:flex;flex-wrap:wrap;gap:14px;margin-top:12px;}
+  .ending{flex:1 1 280px;border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:var(--panel);}
+  .ending.e1{border-top:3px solid var(--red);}
+  .ending.e2{border-top:3px solid var(--cy);}
+  .ending.e3{border-top:3px solid var(--green);}
+  .ending h4{font-size:15px;color:#fff;margin-bottom:8px;}
+  .ending .q{font-style:italic;font-size:12.5px;color:var(--dim);border-top:1px dashed var(--line);margin-top:10px;padding-top:8px;}
+
+  /* ===== FAQ ===== */
+  details{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin-bottom:10px;overflow:hidden;}
+  summary{cursor:pointer;padding:13px 16px;font-size:14px;font-weight:600;color:var(--ink);list-style:none;display:flex;justify-content:space-between;align-items:center;}
+  summary::-webkit-details-marker{display:none;}
+  summary::after{content:"+";font-family:var(--mono);color:var(--cy);font-size:16px;}
+  details[open] summary::after{content:"–";}
+  details .faq-body{padding:0 16px 14px;font-size:13.5px;color:var(--dim);}
+
+  .two-col{display:flex;flex-wrap:wrap;gap:14px;}
+  .two-col>div{flex:1 1 420px;}
+  footer{margin-top:60px;padding-top:20px;border-top:1px solid var(--line);font-size:12.5px;color:var(--dim2);display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+  @media(max-width:640px){
+    .hero{padding:44px 0 32px;}
+    section{padding:32px 0 6px;}
+    h2{font-size:19px;}
+    .nav-inner a{padding:12px 10px;font-size:13px;min-height:44px;display:flex;align-items:center;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="twins"><span class="dot dotA"></span><span class="dot dotB"></span></div>
+    <h1>星都双子1</h1>
+    <p class="sub">星都 2066，你扮演《星都观察者》实习记者<b>沈砚</b>，追查少年林北辰父母的失踪，直到水面之下的「双子计划」浮出真相。本页为<b>完整攻略</b>：全解谜答案、主线六章全流程、三结局指引。</p>
+    <div class="meta">
+      <span class="tag hot">全解谜答案</span>
+      <span class="tag">主线六章 · 双解密</span>
+      <span class="tag warn">含剧透</span>
+      <span class="tag">流程约 30–45 分钟</span>
+      <span class="tag">难度选择</span>
+    </div>
+  </header>
+
+  <nav><div class="nav-inner">
+    <a href="#overview">概览与操作</a>
+    <a href="#answers">答案速查</a>
+    <a href="#flow">完整流程</a>
+    <a href="#endings">三结局</a>
+    <a href="#easter">彩蛋与假线索</a>
+    <a href="#faq">常见卡点</a>
+    <a href="#apps">应用对照</a>
+    <a href="#decrypt">双解密详解</a>
+  </div></nav>
+
+  <!-- ===== 概览 ===== -->
+  <section id="overview">
+    <h2><span class="no">01</span>游戏概览与操作入门</h2>
+    <p class="lead">《星都双子1》是一款运行在浏览器中的悬疑解谜游戏。在拟物化的「星都OS 2066」桌面系统中，你会用邮箱、星搜、网盘、远程桌面、加密频道、暗涌论坛与政务内网，一层层揭开真相。这一部里，幕后资本巨兽<b>「辰天集团」</b>的影子贯穿始终——从网盘的离职证明，到政务文件上的统筹办公室，它正一点点浮出水面。</p>
+
+    <h3>基本操作</h3>
+    <div class="panel">
+      <ul>
+        <li>单击桌面图标打开应用；窗口可拖动、最小化、关闭。所有搜索关键词均有对应页面，不会再有「该页面不存在」的死胡同。</li>
+        <li>星搜（公共信息网）会记录最近搜索，主页可点击历史关键词一键重搜。</li>
+        <li>左下角胶囊显示当前任务目标；点击打开任务窗口，关键节点出现红色抉择按钮。</li>
+        <li>页面所有文字均可选中复制（邮件、聊天、档案）。</li>
+        <li>超过 50 秒没有操作，右下角弹出「闪念」提示，按当前进度给出方向——卡住时等一等也是一种攻略。</li>
+        <li>进度保存在页面内存中，刷新会从头开始；搜索与开应用约半秒到一秒加载延迟，是刻意模拟的系统响应。</li>
+      </ul>
+    </div>
+
+  </section>
+
+  <!-- ===== 答案速查 ===== -->
+  <section id="answers">
+    <h2><span class="no">02</span>全局解谜答案速查表</h2>
+    <p class="lead">卡住时直接查这里。答案固定不变，快速重玩会保留已收集证据。</p>
+    <table>
+      <colgroup><col class="c1"><col class="c2"></colgroup>
+      <tr><th>谜题</th><th>答案 / 操作</th></tr>
+      <tr><td>星云网盘密码</td><td><span class="code">20481015</span>（北辰生日：2048年10月15日）</td></tr>
+      <tr><td>保险箱密码</td><td><span class="code">20490312</span>（北辰第一次开口说话：2049年3月12日）</td></tr>
+      <tr><td>U盘A密码</td><td><span class="code">星空还在</span>（纸条上的接头暗号）</td></tr>
+      <tr><td>远程连接地址</td><td><span class="code">192.168.3.107</span></td></tr>
+      <tr><td>远程连接密码</td><td><span class="code">bc1027</span>（北辰邮件中提供）</td></tr>
+      <tr><td>照片EXIF坐标</td><td>北纬39°54′，东经116°23′ → 搜索「红星路」（可直接搜索，无需先看EXIF）</td></tr>
+      <tr><td>网吧电话末位</td><td><span class="code">6</span>（拨通后录音存入语音助手）</td></tr>
+      <tr><td>暗涌论坛邀请码</td><td><span class="code">2048</span>（电话录音：二零四八）</td></tr>
+      <tr><td>母体档案库后门账号</td><td><span class="code">林北辰B</span></td></tr>
+      <tr><td>母体档案库后门密码</td><td><span class="code">双子星</span>（北辰B信封中提供）</td></tr>
+      <tr><td>政务内网入侵</td><td>搜索「政务内网」（需先完成天象观测站）→ 漏洞利用（SQL注入）→ 获取AES加密文件 → 输入密钥 <span class="code">0412</span> 解密</td></tr>
+      <tr><td>ID系统记者账号</td><td><span class="code">GAZ-0307 / observer2066</span></td></tr>
+      <tr><td>天象观测站电脑密码</td><td><span class="code">0412</span>（老张儿子编号 CLC-2048-0412-B 末四位）</td></tr>
+      <tr><td>政务文件解密密钥</td><td><span class="code">0412</span>（观测站墙上红笔圈出的四位数字）</td></tr>
+      <tr><td>李医生录音解密密钥</td><td><span class="code">2048</span>（暗涌论坛邀请码）</td></tr>
+    </table>
+  </section>
+
+  <!-- ===== 完整流程 ===== -->
+  <section id="flow">
+    <h2><span class="no">03</span>完整流程 · 六章主线</h2>
+    <p class="lead">按主线顺序推进，含天象观测站与政务内网双解密。每一步都有明确来源与答案。</p>
+
+    <div class="step"><div class="num">0</div>
+      <h4>序幕 · 一封匿名邮件 <span class="dur">约5分钟</span></h4>
+      <p>开局任务栏弹出邮件通知。打开「邮箱客户端」，阅读星空之下（林北辰）的【求助】我的父母消失了——注意信里的细节：<span class="k">临港市、10月8日空座位高铁票、黑西装男人</span>。</p>
+      <p>点击「打开星云网盘链接」。网盘密码：北辰生日 8 位。搜索「林北辰」进社交主页，生日动态显示 2048年10月15日，输入 <span class="code">20481015</span> 解锁。</p>
+      <p>逐一查看 6 条线索：3 张聊天截图；「2048留念.jpg」（照片已损坏，可查看文件属性 EXIF）；「离职证明.png」（扫描件；林父 2038–2048 曾任<b>辰天生物</b>外包员工，文件末尾的加密提示<span class="k">「我的父母因为发现了公司的一个秘密被开除了，他们让我绝对不要对任何人说」</span>——解密工具在暗涌论坛）；「不要相信任何人.txt」。全部看完后回到邮箱点击「回复北辰」，获得 LIN-PC 远程权限（地址 192.168.3.107，密码 bc1027）。</p>
+      <div class="callout red"><b>假线索：</b>解锁网盘约 13 秒后收到「热心市民张阿姨」来信，声称在万浪城星空超市目击北辰父母。搜索「万浪城」即可戳穿：该商场 2059 年已停业改造为仓储转运中心——一家关了七年的商场里不可能有人「昨天在买速冻饺子」。这条线索是死的，跳过不影响任何剧情与结局。</div>
+    </div>
+
+    <div class="step"><div class="num">1</div>
+      <h4>第一章 · 初步搜查 <span class="dur">约8分钟 · 远程连接 LIN-PC</span></h4>
+      <p>收到权限邮件后点击「打开远程连接」，输入地址 <span class="code">192.168.3.107</span> 与密码 <span class="code">bc1027</span>。进入 LIN-PC 桌面，四个位置：工作文档、家庭相册、保险箱、回收站。</p>
+      <ol>
+        <li><b>加密频道（先做）</b>：北辰主动告知保险箱密码提示——「我第一次开口说话的日子……2049年3月12日」，密码即 <span class="code">20490312</span>。</li>
+        <li><b>工作文档</b>：《临港市新城规划草案》全是乱码，页眉手写注释——<span class="k">「别信文件，信地址——临港市东郊废弃化工厂3号仓库」</span>；另有一份《星都观察者》未发表社论草稿《<b>辰天建设：星都的基石，还是毒瘤？</b>》（打印残页，指出成人礼评估中心基建由辰天建设中标、被编辑部压稿）。</li>
+        <li><b>家庭相册（3张关键照片）</b>：婴儿床（A/B 标签）；旋转木马（悬停看背面留言）；16岁全家福（镜子里藏着门口的另一个人影）。</li>
+        <li><b>保险箱</b>：取得现金、纸条（去找张叔叔，暗号「星空还在」）、U盘A 与 U盘B。
+          <ul>
+            <li>U盘A：密码「星空还在」——林父与老张篡改评估问卷的完整邮件往来（核心书证）。问卷扫描件页边叠着<b>「辰天集团联合评审委员会」</b>红章——成人礼的评估，辰天在暗中把控。</li>
+            <li>U盘B：《B_契约.mp4》文件头损坏无法播放，内嵌音轨已自动转写至「语音助手 · 星灵」，打开语音助手选中该音轨播放并查看转写。可预览的模糊帧中，合同落款印着<b>「辰天法务部」</b>水印。</li>
+          </ul>
+        </li>
+        <li><b>回收站</b>：恢复已删除的「给北辰的信」，读完父母写于失踪前夜的告别信。</li>
+      </ol>
+      <p><b>声纹分析</b>：语音助手·星灵中选《B_契约.mp4》音轨 vs 北辰频道语音，结论<span class="r">「不一致」</span>——正式确认存在两个林北辰，计入任务目标。</p>
+    </div>
+  </section>
+
+    <div class="step"><div class="num">2</div>
+      <h4>第二章 · 地下暗涌 <span class="dur">约10分钟 · 暗涌论坛</span></h4>
+      <p><b>邀请码获取链（EXIF → 坐标 → 街景 → 电话）</b>：搜索「北纬39°54′」或「红星路」，得到老城区红星路34号（星途地图同步标记）。打开街景：废弃网吧「极光网络会所」，招牌电话 <span class="code">6270 0835</span> 最后一位被刮掉。拨号盘逐位试拨（错误是忙音、可无限重试），拨对 <span class="code">6</span> 接通语音：「邀请码是……二零四八。」</p>
+      <p>搜索「暗涌」进入论坛，输入邀请码 <span class="code">2048</span>。验证成功弹窗分配临时账号「夜航者_2048」，点「进入暗涌」进站。阅读三个主线帖子：<span class="k">置顶销毁中心情报帖、「另一个我」的帖子、D_张 的寻人帖</span>（三个都读过才算完成）。另有一篇匿名爆料帖《<b>辰天法务部：如何合法地让人「社会性死亡」</b>》（提及辰天盯上「姓林的档案员」），点开后帖子读到一半即被「404」覆盖，弹窗提示「辰天安全网关实时拦截」——<span class="r">暗示辰天的网监在实时监控暗网</span>。</p>
+      <p>论坛顶部「站内私信 · D_张」面板直接显示私信：<span class="k">临港东郊化工厂3号仓库，10月15日夜里有一批「货」要转走；这批货不只是人，还有辰天点名要「销毁」的实验室废料，辰天法务部的人会亲自押车，「他们的手段比警察还黑」</span>。读完私信后主线进入「天象观测站」环节。</p>
+    </div>
+
+    <div class="step"><div class="num">主</div>
+      <h4>主线必经 · 天象观测站（老张据点） <span class="dur">取密码本 0412 与三份证据</span></h4>
+      <p>读完 D_张 私信后，星途地图上「天象观测站（市郊）」出现「进入」按钮（也可直接搜索「天象观测站」进入）。在铁门外先做远程扫描：局域网内检测到旧笔记本 <span class="code">ZHANG-PC</span> 在线，22/3389 端口开放，运行已停止支持的星都OS 2051。点击「远程连接旧笔记本电脑」。</p>
+      <p>点「再看看周围」：行军床下有 42 码运动鞋，墙上星图某个星座被红笔圈出，旁边写着 <span class="code">0412</span>。走近电脑输入 4 位密码：<span class="code">0412</span>（线索：电脑便签「密码忘了就想想儿子的编号最后四位」、D_张 寻人帖中儿子编号 <span class="code">CLC-2048-0412-B</span>）。</p>
+      <p>解锁后电脑桌面有三个文件：</p>
+      <ul>
+        <li><b>《老张_日记.txt》</b>（2066-09-15 至 10-13）：李医生索贿老张给不起（老张后来才明白：<b>李医生也是被逼的——辰天生物的经理拿他女儿的命威胁他，辰天的手伸得太长</b>）→ 9月28日与林父彻夜商议，决定「让他们选不了」——篡改评估问卷使两个孩子分数相同 → 10月5日决定 10月15日转运夜前潜入 3 号仓库救人 → 10月8日林父夫妇「去临港」实为踩点、未上高铁 → 10月11日联系不上林父，知道出事了 → 10月13日在暗涌发寻人帖，留下电脑密码 0412：「老张，如果你看到这封信，对不起，爸爸没能把你带回家。」</li>
+        <li><b>《评估员往来记录.csv》</b>：三名评估员 2064–2066 受贿共 <span class="r">470,000 星元</span>，篡改 5 名青少年分数——李某某 3 笔 15 万（含林北辰B案：未收取仍将心理分 90 强改 35）；王某某 1 笔 12 万（智力分 68→95）；赵某某 1 笔 20 万（综合评级「冗余」→「优选」）。<b>铁证：评估篡改是系统性操作，林北辰B 的父母拒绝行贿，孩子仍被强标为冗余体。</b>转账上游账户均指向同一家空壳公司，母公司登记为<b>「辰天置业」</b>——钱从辰天来，绕过一切监管。</li>
+        <li><b>《3号仓库_内部结构图.png》</b>：老张手绘地下一层布局——仓储区A、牢房区（8间，关押冗余体）、监控室（4路信号，值班2人）、配电室（总闸可切断全仓电源）、中央通道、货运月台。红笔标注：<span class="k">「配电室→监控室电源在同一回路」——切断总闸即可让监控和警报全部离线</span>。图纸边缘签着<b>「辰天建设（监理方）」</b>——3号仓库的监理方正是辰天；断电方案是老张当年在辰天建设当保安时偷偷记下的。</li>
+      </ul>
+      <div class="callout cy"><b>影响结局：</b>持有受贿记录 → 结局一报道自动追加账目细节、纪检介入；持有结构图 → 结局一特警按图断电突入、结局二监控环节多一步「切断配电室总闸」。</div>
+    </div>
+
+    <div class="step"><div class="num">4</div>
+      <h4>政务内网 · 入侵与解密 <span class="dur">主线必经 · SQL注入 · 密钥0412</span></h4>
+      <p>完成观测站拿到密码本后，搜索「政务内网」「政府后台」或「星都政务」（未完成观测站时只提示「需要密码本」）。读完《老张_日记》后邮箱会收到「未知发件人」无主题邮件，正文写明后台地址 <span class="code">gov.xd.net/admin</span>，认证已在管理员会话中预留。</p>
+      <p>进入页面：登录框账号已预填 admin，密码框为空，灰色小字提示默认密码已修改。点击红色按钮「漏洞利用 · SQL 注入」，终端模拟框弹出入侵日志，下载文件。</p>
+      <p>获取《双子计划_实施方案_2048.docx》——AES-256 加密密文（显示为乱码）。在解密框输入密钥 <span class="code">0412</span>（观测站墙上红笔圈出的四位数字，老张日记亦写明），点「离线解密」解锁正文。</p>
+      <p><b>官方红头文件核心内容：</b>每个新生儿须提交 DNA 样本，统一培育克隆备份体（B 体）；18 岁成人礼综合评估，得分低者即为「冗余体」；统一处置方式：焚化 / 深度冷冻 / 意识格式化，外包至临港东郊 3 号仓库；家长统一回复「赴海外深造」；<span class="r">本年度已处置冗余体 1,244 例</span>。签发单位除星都市卫健委外并列<b>「辰天集团专项统筹办公室」</b>——辰天已从企业变成实际上的「影子政府」；文末附注：<span class="k">具体执行由辰天CTO办公室下属回声研究所负责</span>。</p>
+      <p>解密并读完官方文件后，屏幕强制弹出「<b>辰天集团安全网关拦截</b>」——本次会话已被标记、辰天法务部正在溯源；随后第三章「双重人格」自动触发。</p>
+    </div>
+
+    <div class="step"><div class="num">5</div>
+      <h4>第三章 · 双重人格 <span class="dur">约8分钟 · 北辰B的信</span></h4>
+      <p>收到「他回来了」的紧急消息后，立即打开加密频道。北辰看到「他」回来了，还收到只有「开门」两个字的短信，期间一条消息被撤回——他犹豫着没说出口的话。</p>
+      <p>做出选择：【让他开门】或【锁好门不要回应】（只影响对话细节，不影响结局）。选择后北辰B 的信直接送达（Word 信纸样式）：<span class="k">白色房间的往事、3号仓库转运警告，以及后门密码「双子星」</span>。信里还有一句关键自白：<b>「他们说我脑子里装着『回声计划』的初始密钥……他们想把所有冗余体的意识，变成数字奴隶」</b>——辰天在 3 号仓库事件前，已在暗中进行意识数据化实验。</p>
+    </div>
+
+    <div class="step"><div class="num">6</div>
+      <h4>第四章 · 母体档案库 <span class="dur">约10分钟 · 后门 · 双子星</span></h4>
+      <p>打开「星都居民ID系统」，切换「隐蔽后门」标签。账号已填「林北辰B」，密码输入 <span class="code">双子星</span>。检索「林北辰」：档案A（95/78/90，优选候选）与档案B（142/165/35，冗余体——心理数据注明可能与评估者主观偏差有关）。</p>
+      <p>点击「调出复核申请通道」，播放隐藏录音「李医生_自述」（结尾有枪声，注意音量）。录音证明「小林B」是被冤枉的，更道出幕后推手：<b>「是辰天法务部的律师告诉我，只要把低分孩子改成冗余体，他们就能顺利处理掉。辰天说，这是为了星都的『人口优化』」</b>。播放完毕触发第五章。</p>
+    </div>
+
+    <div class="step"><div class="num">7</div>
+      <h4>第五章 · 最后的抉择 <span class="dur">约5分钟 · 三结局</span></h4>
+      <p>10月14日深夜。北辰B 已混入 3 号仓库并送来实时定位。打开任务目标窗口，点击红色「做出最终选择」按钮，三个选项分别对应三个结局。想体验全部三个结局：达成任一结局后点击「回到简介」，可快速重玩「最后的抉择」（保留已收集证据，红点清零、声纹比对自动完成）；也可从简介重新开局按速查表重解谜题。</p>
+    </div>
+  </section>
+
+  <!-- ===== 三结局 ===== -->
+  <section id="endings">
+    <h2><span class="no">04</span>三个结局指引</h2>
+    <p class="lead">第五章的三个选项对应三个结局。</p>
+    <div class="endings">
+      <div class="ending e1">
+        <h4>结局一 · 真相的重量</h4>
+        <p><b>选择：发布报道。</b>报道在十分钟内引爆全网。特警突入临港东郊 3 号仓库地下，救出林北辰的父母和十七名即将被「转运」的冗余体。小林B 因「证据不足」未被当场处置，但被列为「高度关注对象」，从此活在镜头之下。新闻插播中<b>辰天集团股价盘中暴跌，随即声明系「个别底层员工的违规操作」、开除替罪羊——断尾求生，为续作伏笔</b>。一周后小林A 来信问：「沈记者，我弟弟……算是活下来了吗？」而你桌上放着<b>辰天集团法务部</b>寄来的律师函——以「侵犯商业机密」和「严重损害企业名誉」为由起诉你。</p>
+        <p class="q">「真相是有重量的。它压垮了一些人，也压在一些人的名字上，永不风化。」</p>
+      </div>
+      <div class="ending e2">
+        <h4>结局二 · 枪声过后</h4>
+        <p><b>选择：现场营救。</b>你没有发布报道，根据小林B 的指引远程入侵 3 号仓库监控，关闭警报、指引路线。监控屏幕里，那个眼神冰冷的少年在货架间穿行，像一台精密的机器。他找到了林母——就在他要带她离开的时候，保安的手电光扫了过来。他把她推进暗处，自己迎了上去。一声枪响。屏幕一片雪花，你疯狂呼叫他的频道，没有回应。十分钟后新闻弹出：「临港市东郊发生一起恶性暴力事件，一名身份不明的青少年被击毙。」三天后你收到匿名快递，一个贴着「B」的U盘，只有一个文件：「谢谢你，至少我努力过了。」你的报道，永远没有发出去。</p>
+        <p class="q">「他这一生只被爱过一次，还是他自己偷偷给的。」</p>
+      </div>
+      <div class="ending e3">
+        <h4>结局三 · 幸存者的愧疚</h4>
+        <p><b>选择：删除一切证据。</b>你彻底删除所有关于「双子计划」的帖子，格式化U盘，销毁录音，给小林A 发去最后一条消息：「忘了这一切吧。好好活下去。」小林A 通过成人礼测试，和「归来的」父母继续生活，考上大学，毕业后成为一名公务员。档案科那份涂黑的记录再没有人翻开过。多年后，你凭一篇城市绿化报道获得「星都优秀记者奖」，颁奖典礼上小林A 作为优秀青年代表为你颁奖。握手的那一刻他看着你的眼睛轻声说：「我梦到他了。他说他原谅我了。」你的笑容僵在脸上，手中的奖杯变得无比沉重。</p>
+        <p class="q">「这座城市又平稳地运行了一天。只是有些人，被平稳地运行过去了。」</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== 彩蛋与假线索 ===== -->
+  <section id="easter">
+    <h2><span class="no">05</span>彩蛋、假线索与冗余信息</h2>
+    <div class="panel">
+      <ul>
+        <li><b>假线索（万浪城）</b>：见序幕——死线索，用于营造真实探案的无效报料感。</li>
+        <li><b>无关搜索</b>：搜「美食/餐厅/旅游/宠物/领养/天气」会返回餐厅排行榜、宠物领养中心等无关页面，纯属世界观点缀。</li>
+        <li><b>系统监控 · 日志</b>（桌面灰色圆环图标）：后台日志终端，每几秒滚动一条——「邮件服务连接失败」「词条『双子计划』复审通过（维持：不存在）」「临港东郊网格：新增节点×2」。可完全忽略，细读会发现它也在讲故事。</li>
+        <li><b>科幻彩蛋</b>：搜索「双子星」读《双生子悖论》节选。</li>
+        <li><b>辅助搜索词</b>均已覆盖：克隆/备份体、优选体/冗余体、失踪/寻人/立案、林母/林父/林太太、信用积分、销毁/焚烧/冷冻、政务内网/政府后台等。</li>
+        <li><b>星途地图 5 个地点</b>均可点击查看说明：小林家、生命延续中心、档案馆、天象观测站（张叔叔据点）、红星路34号。</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ===== FAQ ===== -->
+  <section id="faq">
+    <h2><span class="no">06</span>常见卡点 FAQ</h2>
+    <details>
+      <summary>远程连接打不开？</summary>
+      <div class="faq-body">需要先回复北辰邮件获得权限，然后在邮件中点击「打开远程连接」，输入地址 <span class="code">192.168.3.107</span> 和密码 <span class="code">bc1027</span>。</div>
+    </details>
+    <details>
+      <summary>政务内网搜不到？</summary>
+      <div class="faq-body">必须满足两个前置：① 读完暗涌论坛三个帖子，D_张 私信会直接显示在论坛顶部「站内私信」面板；② 先完成天象观测站拿到密码本（老张日记末尾还会提示漏洞入口邮件）。未完成观测站时搜索只会提示「需要密码本」。</div>
+    </details>
+    <details>
+      <summary>政务内网入侵成功后第三章还没触发？</summary>
+      <div class="faq-body">文件是 AES-256 加密的，先用密码本 <span class="code">0412</span> 解密；解密完成后约 3 秒自动触发第三章（加密频道弹出「他回来了」的紧急消息）。若仍未触发，点开加密频道刷新即可。</div>
+    </details>
+    <details>
+      <summary>保险箱密码哪里找？</summary>
+      <div class="faq-body">打开加密频道，北辰会主动告知密码提示——「我第一次开口说话的日子」，并给出答案：2049年3月12日。密码为 <span class="code">20490312</span>。</div>
+    </details>
+    <details>
+      <summary>红星路 / 北纬坐标搜不到？</summary>
+      <div class="faq-body">已修复，任意时刻直接搜索「红星路」或「北纬39°54′」即可命中，无需先看 EXIF。</div>
+    </details>
+    <details>
+      <summary>怎么确认有两个北辰？</summary>
+      <div class="faq-body">在语音助手·星灵中，比对《B_契约.mp4》音轨 vs 北辰频道语音样本，结论「不一致」。</div>
+    </details>
+    <details>
+      <summary>天象观测站怎么进去？</summary>
+      <div class="faq-body">必须先读完暗涌论坛 D_张 的私信（第二章完成后）。之后打开星途地图，点击「天象观测站（市郊）」标记，详情中出现「进入观测站」按钮；也可以直接搜索「天象观测站」进入。没读私信时搜索只会返回废弃观测站的公开信息。</div>
+    </details>
+    <details>
+      <summary>观测站是必做的吗？</summary>
+      <div class="faq-body">必做。v3.6.0 起观测站已并入主线：它是政务内网解密（密钥 0412）的前置，也是第三章触发的必要条件。三份证据还会让结局叙述更完整。</div>
+    </details>
+    <details>
+      <summary>李医生录音怎么解密？</summary>
+      <div class="faq-body">用「双子星」进入母体档案库、调出复核通道后，录音以员工私钥加密。输入四位密钥 <span class="code">2048</span>（即暗涌论坛邀请码），点「解密此录音」后再点磁带播放。</div>
+    </details>
+    <details>
+      <summary>结局怎么触发？</summary>
+      <div class="faq-body">第五章（真相已知后）任务目标窗口会出现红色「做出最终选择」按钮。三个选项分别对应三个结局。</div>
+    </details>
+  </section>
+
+  <!-- ===== 应用对照 ===== -->
+  <section id="apps">
+    <h2><span class="no">07</span>应用与线索对照表</h2>
+    <p class="lead">每一个应用都藏着一条或多条关键线索，按此对照检查是否有遗漏。</p>
+    <table>
+      <colgroup><col class="c1"><col class="c2"></colgroup>
+      <tr><th>应用</th><th>核心线索</th></tr>
+      <tr><td>邮箱客户端</td><td>求助信、权限邮件、张阿姨假线索、未知发件人（政务漏洞入口）、陈姐警告</td></tr>
+      <tr><td>星搜 · 公共信息网</td><td>万浪城（假）、红星路34号、化工厂3号仓库、政务内网、生命延续中心、双子计划词条（审查中）</td></tr>
+      <tr><td>星云网盘</td><td>3张聊天截图、2048留念.jpg（已损坏 · EXIF坐标）、离职证明.png（扫描件 · 辰天生物外包 · 加密提示）、不要相信任何人.txt</td></tr>
+      <tr><td>远程连接 · LIN-PC</td><td>工作文档（3号仓库地址 · 辰天建设社论草稿）、家庭相册（A/B标签/背面字/镜中人）、保险箱（U盘A辰天评审章 / U盘B辰天法务部水印 / 纸条）、回收站（告别信）</td></tr>
+      <tr><td>加密频道 · 北辰</td><td>保险箱密码提示、第三章紧急事件、北辰B的信（双子星密码 · 回声计划初始密钥）</td></tr>
+      <tr><td>星途地图</td><td>红星路34号街景、极光网吧电话、3号仓库标记、天象观测站（老张据点 · 旧电脑三份证据）</td></tr>
+      <tr><td>语音助手 · 星灵</td><td>网吧录音（邀请码）、B_契约音轨、北辰语音样本、李医生录音、声纹比对</td></tr>
+      <tr><td>暗涌论坛</td><td>销毁中心情报、另一个我帖子、D_张寻人帖、辰天法务部爆料帖（点开即被404）、站内私信面板（D_张 · 辰天押车情报）</td></tr>
+      <tr><td>政务内网</td><td>双子计划官方实施方案（AES加密 · 密码本0412解密 · 辰天专项统筹办公室签发 · 回声研究所执行 · 读完触发安全网关拦截）</td></tr>
+      <tr><td>星都居民ID系统</td><td>档案A/B对比、李医生_自述录音（密钥2048解密）</td></tr>
+      <tr><td>新闻后台</td><td>结局一：发布深度报道</td></tr>
+      <tr><td>任务目标</td><td>全程指引（简单难度）</td></tr>
+      <tr><td>天象观测站（主线必经）</td><td>老张日记（事件始末 · 李医生被辰天威胁）、评估员受贿记录（47万/5人/3评估员 · 上游辰天置业）、3号仓库内部结构图（配电室总闸提示 · 辰天建设监理）</td></tr>
+    </table>
+  </section>
+
+  <!-- ===== 双解密详解 ===== -->
+  <section id="decrypt">
+    <h2><span class="no">08</span>双解密环节详解</h2>
+    <div class="two-col">
+      <div class="panel">
+        <div class="tt">政务内网解密</div>
+        <p>在星搜中搜索「政务内网」并成功越权后，下载到的《双子计划_实施方案_2048.docx》为 AES-256 加密密文（显示为乱码）。在解密框中输入密码本密钥——即天象观测站墙上红笔圈出的四位数字 <span class="code">0412</span>（老张儿子编号后四位，日记里也写明）——点「离线解密」即可解锁正文。错误会提示重试。</p>
+        <p>密钥 0412 的线索：观测站墙上星图旁红笔圈出的四位数字，也是老张日记末尾摩斯码 <span class="mono">----- ....- .---- ..---</span> 的翻译。可在政务解密页点击「播放摩斯音频」听 assets/Morse code.wav，或对照 assets/Morse Code Chart.png 翻译。</p>
+      </div>
+      <div class="panel">
+        <div class="tt">母体档案库解密</div>
+        <p>用「双子星」进入母体档案库、调出「复核申请」通道后，挂载的「李医生_自述.wav」以员工私钥加密，无法直接播放。在解密框中输入这扇地下之门的四位数字 <span class="code">2048</span>（你最初进入暗涌论坛用的邀请码），点「解密此录音」；磁带卡片出现后再点磁带开始播放转写记录。</p>
+      </div>
+    </div>
+    <div class="callout">祝你在这座城市的水面之下，找到属于你的真相。</div>
+  </section>
+</div>
+</body>
+</html>
