@@ -165,14 +165,63 @@ section{padding:52px 0}
   content:"";position:absolute;inset:0;
   background:linear-gradient(to top,rgba(5,7,13,.9) 0%,rgba(5,7,13,.28) 42%,transparent 72%);
 }
-.badge,.year,.cover-cta{position:absolute;z-index:2;font-family:var(--mono)}
-.badge{
-  top:14px;left:14px;font-size:10.5px;letter-spacing:.2em;
-  padding:5px 11px;border-radius:999px;color:var(--cyan);
-  border:1px solid rgba(91,208,230,.5);background:rgba(5,9,16,.66);
-  backdrop-filter:blur(6px);
+.year,.cover-cta{position:absolute;z-index:2;font-family:var(--mono)}
+.cover-tags{
+  position:absolute;top:14px;left:14px;z-index:2;
+  display:flex;flex-wrap:wrap;gap:8px;max-width:calc(100% - 108px);
 }
+.badge{
+  display:inline-flex;align-items:center;gap:6px;font-family:var(--mono);
+  font-size:10.5px;letter-spacing:.2em;padding:5px 11px;border-radius:999px;
+  background:rgba(5,9,16,.66);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+}
+.badge{color:var(--cyan);border:1px solid rgba(91,208,230,.5)}
 .card[data-part="2"] .badge{color:var(--violet);border-color:rgba(155,140,255,.5)}
+@keyframes beat{0%,100%{opacity:.35}50%{opacity:1}}
+
+/* ===== 未发布作品的占位封面（无图片） ===== */
+.cover-ph{
+  position:relative;aspect-ratio:16/9;overflow:hidden;
+  display:flex;align-items:center;justify-content:center;
+  background:
+    radial-gradient(120% 100% at 50% 0%,rgba(155,140,255,.2),transparent 60%),
+    radial-gradient(90% 80% at 50% 112%,rgba(91,208,230,.1),transparent 62%),
+    linear-gradient(165deg,#0b111b,#070a11 55%,#0a0e18);
+  border-bottom:1px solid rgba(96,130,172,.22);
+}
+.cover-ph::before{
+  content:"";position:absolute;inset:16px;border-radius:10px;
+  border:1px dashed rgba(155,140,255,.3);transition:border-color .4s;
+}
+.cover-ph::after{
+  content:"";position:absolute;inset:0;opacity:.7;
+  background-image:
+    radial-gradient(1.4px 1.4px at 18% 24%,rgba(226,238,255,.8),transparent 60%),
+    radial-gradient(1.2px 1.2px at 74% 18%,rgba(226,238,255,.55),transparent 60%),
+    radial-gradient(1.6px 1.6px at 32% 78%,rgba(203,188,255,.6),transparent 60%),
+    radial-gradient(1.2px 1.2px at 86% 66%,rgba(226,238,255,.45),transparent 60%),
+    radial-gradient(1px 1px at 56% 44%,rgba(226,238,255,.4),transparent 60%),
+    radial-gradient(1.2px 1.2px at 12% 62%,rgba(203,188,255,.45),transparent 60%),
+    radial-gradient(1px 1px at 64% 84%,rgba(226,238,255,.4),transparent 60%);
+  animation:ph-twinkle 6.5s ease-in-out infinite;
+}
+@keyframes ph-twinkle{0%,100%{opacity:.5}50%{opacity:1}}
+.card[data-part="2"]:hover .cover-ph::before,
+.card[data-part="2"]:focus-within .cover-ph::before{border-color:rgba(155,140,255,.55)}
+.cover-ph .cover-tags{top:24px;left:24px}
+.cover-ph .year{top:30px;right:24px}
+.ph-core{position:relative;z-index:2;text-align:center;padding:0 24px}
+.ph-main{
+  font-size:clamp(23px,3.2vw,32px);font-weight:800;letter-spacing:.34em;text-indent:.34em;
+  color:#ebe5ff;text-shadow:0 6px 32px rgba(155,140,255,.55),0 0 2px rgba(235,229,255,.5);
+}
+.ph-sub{
+  margin-top:14px;font-family:var(--mono);font-size:10px;letter-spacing:.26em;color:#8e87b9;
+}
+.ph-rule{
+  width:46px;height:1px;margin:0 auto 20px;
+  background:linear-gradient(90deg,transparent,rgba(155,140,255,.9),transparent);
+}
 .year{top:20px;right:16px;font-size:12px;letter-spacing:.2em;color:rgba(224,236,250,.72)}
 .cover-cta{
   bottom:14px;right:16px;font-size:11.5px;letter-spacing:.14em;color:var(--cyan);
@@ -194,6 +243,19 @@ section{padding:52px 0}
 .chip.warn{color:var(--amber);border-color:rgba(240,194,109,.34)}
 .blurb{margin:16px 0 20px;font-size:13.5px;line-height:1.9;color:#9aacc0}
 .blurb b{color:#dbe9f8;font-weight:600}
+.status{
+  display:flex;align-items:flex-start;gap:9px;
+  margin:0 0 18px;padding:10px 13px;border-radius:9px;
+  font-size:12.2px;line-height:1.8;color:#c9bcff;
+  background:rgba(155,140,255,.075);
+  border:1px dashed rgba(155,140,255,.36);
+}
+.status b{color:#e3dbff;font-weight:600}
+.status .dot{
+  flex:0 0 auto;width:6px;height:6px;margin-top:7px;border-radius:50%;
+  background:var(--violet);box-shadow:0 0 9px rgba(155,140,255,.9);
+  animation:beat 2.4s ease-in-out infinite;
+}
 .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:auto}
 .btn{
   display:inline-flex;align-items:center;gap:7px;
@@ -267,6 +329,7 @@ footer{
 .foot-note{font-size:12px;color:var(--dim);line-height:2;max-width:720px;margin:0 auto}
 .foot-note a{color:var(--dim);text-decoration:none;border-bottom:1px solid rgba(96,130,172,.4)}
 .foot-note a:hover{color:var(--cyan)}
+.foot-note b{color:#c9bcff;font-weight:600}
 .foot-ver{font-family:var(--mono);font-size:11px;letter-spacing:.16em;color:rgba(127,147,169,.6);margin-top:22px}
 
 /* ============ RESPONSIVE ============ */
@@ -352,7 +415,7 @@ a:focus-visible,.btn:focus-visible{outline:2px solid var(--cyan);outline-offset:
       <article class="card" data-part="1">
         <a class="cover" href="WIG%20game%201/index.html" aria-label="进入第一部《星都双子》">
           <img src="WIG game 1/游戏封面.jpg" alt="《星都双子》封面：夜色中的星都市与双子座" loading="lazy">
-          <span class="badge">第一部</span>
+          <span class="cover-tags"><span class="badge">第一部</span></span>
           <span class="year">2066</span>
           <span class="cover-cta">进入游戏 →</span>
         </a>
@@ -383,20 +446,21 @@ a:focus-visible,.btn:focus-visible{outline:2px solid var(--cyan);outline-offset:
             <a href="https://rwxwswig.github.io/xingduWIG.github.io/" target="_blank" rel="noopener">线上版 ↗</a>
             <span class="sep">·</span>
             <a href="https://v.wjx.cn/vm/wFWZB0W.aspx" target="_blank" rel="noopener">玩家问卷 ↗</a>
-            <span class="sep">·</span>
-            <a href="WIG%20game%201/作品简介.txt" target="_blank" rel="noopener">作品简介</a>
           </div>
         </div>
       </article>
 
       <!-- 第二部 -->
       <article class="card" data-part="2">
-        <a class="cover" href="WIG%20game%202/index.html" aria-label="进入第二部《星都双子2：回声囚笼》">
-          <img src="WIG game 2/assets/anchor_clean.png" alt="《星都双子2：回声囚笼》封面：新闻演播室里的银发主播" loading="lazy">
-          <span class="badge">第二部</span>
+        <div class="cover-ph" role="img" aria-label="《星都双子2：回声囚笼》尚未发布">
+          <span class="cover-tags"><span class="badge">第二部</span></span>
           <span class="year">2069</span>
-          <span class="cover-cta">进入游戏 →</span>
-        </a>
+          <div class="ph-core">
+            <div class="ph-rule"></div>
+            <div class="ph-main">尚未发布</div>
+            <div class="ph-sub">NO.02 · ECHO CAGE · COMING SOON</div>
+          </div>
+        </div>
         <div class="card-body">
           <h3 class="card-title">星都双子 2<em>回声囚笼 · ECHO CAGE</em></h3>
           <div class="card-tagline">软禁公寓 · 一段不该存在的信号 · 回声协议</div>
@@ -415,16 +479,15 @@ a:focus-visible,.btn:focus-visible{outline:2px solid var(--cyan);outline-offset:
             她的核心深处，还嵌着一段无法删除的底层模块——「回声协议」。
           </p>
 
+          <div class="status">
+            <span class="dot" aria-hidden="true"></span>
+            <span><b>本作尚未公开发布。</b>目前仅可在本合集中本地游玩，暂无线上版；正式发布后本页会同步更新。</span>
+          </div>
+
           <div class="actions">
             <a class="btn btn-primary" href="WIG%20game%202/index.html">开始游戏</a>
             <a class="btn" href="WIG%20game%202/console.html">选关控制台</a>
             <a class="btn" href="WIG%20game%202/END/index.html">真结局后日谈</a>
-          </div>
-
-          <div class="card-foot">
-            <a href="WIG%20game%202/《双子2：回声囚笼》完整攻略_v2.docx">完整攻略（Word）</a>
-            <span class="sep">·</span>
-            <a href="WIG%20game%202/《星都双子2：回声囚笼》的剧情流程与解密机制.docx">流程与解密（含剧透）</a>
           </div>
         </div>
       </article>
@@ -500,7 +563,7 @@ a:focus-visible,.btn:focus-visible{outline:2px solid var(--cyan);outline-offset:
     <div class="foot-tag">星 都 观 察 者 · 为 沉 默 者 发 声</div>
     <p class="foot-note">
       《星都双子》正传系列 · 网页互动游戏（WIG）合集 · 第二部作品名《星都双子2：回声囚笼》<br>
-      本游戏不收集任何数据 · 数据保存在浏览器本地
+      第一部已上线，<b>第二部尚未公开发布</b>· 本游戏不收集任何数据 · 数据保存在浏览器本地
     </p>
     <div class="foot-ver">XD OBSERVER / ARCHIVE BUILD 2026.10</div>
   </footer>
