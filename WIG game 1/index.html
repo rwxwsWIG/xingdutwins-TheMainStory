@@ -36,7 +36,7 @@
     <div class="diff-row">
       <button class="btn btn-primary btn-lg diff-btn" data-action="start-game" data-arg="easy">
         <span class="diff-t"> 简单难度</span>
-        <span class="diff-d">显示任务目标与提示</span>
+        <span class="diff-d">显示任务目标，卡住可随时点「提示」</span>
       </button>
       <button class="btn btn-lg diff-btn" data-action="start-game" data-arg="normal">
         <span class="diff-t"> 普通难度</span>
@@ -135,6 +135,7 @@
 
   
   <div id="taskbar">
+    <div id="tb-hint" class="tb-hint hidden" data-action="hint" title="卡住了？点这里，会按你当前的进度给一句提示（简单难度）">✦ 提示</div>
     <div class="tb-start" data-action="open-start">✦ 开始</div>
     <div class="tb-divider"></div>
     <div id="tb-windows"></div>

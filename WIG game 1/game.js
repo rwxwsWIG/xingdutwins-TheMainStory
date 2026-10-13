@@ -3742,16 +3742,16 @@ function objectiveText() {
   if (has("game_over")) return "（本局故事已完结）";
   if (has("choice_route1")) return "在新闻后台编辑器中，发布那篇报道";
   if (has("truth_known")) return "做出你的最终选择（点击任务目标）";
-  if (has("b_letter")) return "用「双子星」进入母体档案库，调阅A/B档案与李医生录音";
+  if (has("b_letter")) return "用信里给的密钥登录母体档案库，把最后两份档案调出来";
   if (has("gov_decrypted")) return "打开加密频道——北辰那边出事了";
-  if (has("gov_hacked")) return "用密码本「0412」解密《双子计划_实施方案_2048.docx》";
-  if (has("obs_unlocked")) return "搜索「政务内网」，入侵政府系统并用密码本解开官方文件";
-  if (has("dm_read")) return "调查天象观测站（张叔叔据点），在老张的旧电脑里拿到密码本与证据";
-  if (has("ch1_done")) return has("invite_known") ? "进入「暗涌」论坛，读完帖子并查收D_张的私信" : "查看2048留念照的EXIF坐标，搜出红星路34号，拨通那部老电话";
-  if (has("remote_granted")) return "搜查LIN-PC（" + remoteProgress() + "）";
-  if (prologueDone()) return "回到邮箱，回复北辰获取远程访问权限";
+  if (has("gov_hacked")) return "用你手里那本密码本，解开刚下载的加密文件";
+  if (has("obs_unlocked")) return "想办法进入星都政府的内部系统，取走那份官方文件";
+  if (has("dm_read")) return "去老张留下的据点调查，把他藏起来的证据全部找出来";
+  if (has("ch1_done")) return has("invite_known") ? "用邀请码进入那个加密论坛，读完帖子并查收私信" : "照片和录音里还藏着没看的部分——顺着它们找到下一个接头点";
+  if (has("remote_granted")) return "搜查北辰的电脑（" + remoteProgress() + "）";
+  if (prologueDone()) return "回复北辰，取得他电脑的远程访问权限";
   if (has("cloud_opened")) return `查看星云网盘中的线索（截图${["e_chat1","e_chat2","e_chat3"].filter(has).length}/3 · 照片${has("e_photo") ? "✓" : "…"} · 文本${has("e_note") ? "✓" : "…"}）`;
-  return "在邮箱客户端或新闻后台，阅读北辰的求助信，解锁他的星云网盘";
+  return "读一读北辰的求助信，看看他为你留下了什么";
 }
 function objectiveList() {
   const L = [];
@@ -3759,18 +3759,18 @@ function objectiveList() {
   const anon = inbox.find(m => m.id === "m_anon");
   add("阅读北辰的求助邮件", anon ? !anon.unread : true, !has("cloud_opened"));
   add("查看星云网盘的6条初步线索", prologueDone(), has("cloud_opened") && !prologueDone());
-  add("回复北辰，连接LIN-PC远程访问", has("remote_granted"), prologueDone() && !has("remote_granted"));
-  add("搜查LIN-PC：工作文档 / 相册 / 回收站", has("r_work") && has("r_photo3") && has("letter_read"), has("remote_granted") && !(has("r_work") && has("r_photo3") && has("letter_read")));
-  add("开启保险箱（20490312）并查看两个U盘", has("usbA_opened") && has("video_watched"), has("remote_granted") && !(has("usbA_opened") && has("video_watched")));
-  add("【声纹】用星灵比对《B_契约》音轨与北辰的语音", has("vp_ab"), has("video_watched") && !has("vp_ab"));
-  add("查看2048留念照的EXIF坐标，搜出红星路34号并拨通老电话拿到邀请码", has("invite_known"), has("ch1_done") && !has("invite_known"));
+  add("回复北辰，取得远程访问权限", has("remote_granted"), prologueDone() && !has("remote_granted"));
+  add("搜查北辰的电脑：工作文档 / 相册 / 回收站", has("r_work") && has("r_photo3") && has("letter_read"), has("remote_granted") && !(has("r_work") && has("r_photo3") && has("letter_read")));
+  add("找到并打开保险箱，看看里面藏着什么", has("usbA_opened") && has("video_watched"), has("remote_granted") && !(has("usbA_opened") && has("video_watched")));
+  add("【声纹】用星灵比对两段音频，确认它们是否来自同一个人", has("vp_ab"), has("video_watched") && !has("vp_ab"));
+  add("留意照片里藏着的隐藏信息，顺藤摸瓜找到并拨通那部老电话", has("invite_known"), has("ch1_done") && !has("invite_known"));
   const forumAllRead = has("forum_read_top") && has("forum_read_b2") && has("forum_read_zhang");
-  add("进入「暗涌」，读帖并查收D_张的私信", has("dm_read") && forumAllRead, has("invite_known") && !(has("dm_read") && forumAllRead));
-  add("调查天象观测站（张叔叔据点），获取密码本与旧电脑三份证据", has("obs_unlocked"), has("dm_read") && !has("obs_unlocked"));
-  add("搜索「政务内网」，入侵星都政府系统获取官方实施文件", has("gov_hacked"), has("obs_unlocked") && !has("gov_hacked"));
-  add("用密码本「0412」解密《双子计划_实施方案_2048.docx》", has("gov_decrypted"), has("gov_hacked") && !has("gov_decrypted"));
-  add("在加密频道面对「开门」，读完北辰B的信", has("b_letter"), has("gov_decrypted") && !has("b_letter"));
-  add("登录母体档案库，调阅档案与李医生录音", has("truth_known"), has("b_letter") && !has("truth_known"));
+  add("用邀请码进入那个加密论坛，读帖并查收私信", has("dm_read") && forumAllRead, has("invite_known") && !(has("dm_read") && forumAllRead));
+  add("去老张留下的据点调查，取走他留下的证据", has("obs_unlocked"), has("dm_read") && !has("obs_unlocked"));
+  add("进入星都政府的内部系统，获取官方实施文件", has("gov_hacked"), has("obs_unlocked") && !has("gov_hacked"));
+  add("用找到的密码本，解开那份加密的官方实施文件", has("gov_decrypted"), has("gov_hacked") && !has("gov_decrypted"));
+  add("在加密频道做出回应，读完北辰B留下的信", has("b_letter"), has("gov_decrypted") && !has("b_letter"));
+  add("登录母体档案库，调阅最后两份档案", has("truth_known"), has("b_letter") && !has("truth_known"));
   add("做出你的最终选择", has("game_over"), has("truth_known") && !has("game_over"));
   if (has("game_over")) add("体验其他结局：回到简介，快速重玩「最后的抉择」", true, true);
   return L;
@@ -3794,7 +3794,7 @@ function objectivesHtml() {
     <div class="app-sub">当前：${esc(objectiveText())}</div>
     <ul class="obj-list">${list}</ul>
     ${extra}
-    <div class="hint-box">${svgIcon("spark")} 卡住时可以：多搜索几个关键词 / 查看邮件附件 / 打开语音助手听录音 / 找北辰聊聊。</div>
+    <div class="hint-box">${svgIcon("spark")} 卡住时，点任务栏「✦ 开始」左边的「✦ 提示」按钮——它会按你当前的进度给一个方向。也可以：多搜索几个关键词 / 查看邮件附件 / 打开语音助手听录音 / 找北辰聊聊。</div>
   </div>`;
 }
 function renderObjectives() {
@@ -3802,6 +3802,8 @@ function renderObjectives() {
   if (ot) ot.textContent = objectiveText();
   const panel = $("#objective-panel");
   if (panel) panel.style.display = (S.difficulty === "easy") ? "" : "none";
+  const hintBtn = $("#tb-hint");
+  if (hintBtn) hintBtn.classList.toggle("hidden", S.difficulty !== "easy");
   const ol = $("#objective-list");
   if (ol) {
     ol.innerHTML = objectiveList()
@@ -4365,7 +4367,7 @@ document.addEventListener("click", (e) => {
         renderIcons(); renderObjectives();
         toast("游 难度：" + (S.difficulty === "easy" ? "简单" : "普通"),
           S.difficulty === "easy"
-            ? "右侧会显示任务目标，闲置时还有提示。祝你查案顺利。"
+            ? "右侧会显示任务目标；卡住时，点任务栏「✦ 开始」左边的「✦ 提示」按钮。祝你查案顺利。"
             : "任务目标与提示已全部关闭。这座城市的水面之下，只能靠你自己了。", "warn", null, 9000);
         setTimeout(() => toast("邮 新邮件", "<b>星空之下（匿名）</b>：【求助】我的父母消失了", "", () => {
           openApp("mail"); S.ui.mail.sel = "m_anon"; S.ui.mail.acct = "me"; S.ui.mail.acctSel = "me"; refreshAll();
@@ -4380,7 +4382,7 @@ document.addEventListener("click", (e) => {
       $("#desktop").classList.remove("hidden");
       S.started = true;
       setClockDate("2066-10-14"); setClock("23:58");
-      ["cloud_opened","e_chat1","e_chat2","e_chat3","e_photo","e_note",
+      ["cloud_opened","e_chat1","e_chat2","e_chat3","e_photo","e_proof","e_note",
        "remote_granted","r_work","r_photo1","r_photo2","r_photo3","safe_opened","usbA_opened","video_watched","letter_read",
        "ch1_done","invite_known","forum_open","forum_read_top","forum_read_b2","forum_read_zhang",
        "dm_read","obs_unlocked","obs_diary","obs_bribe","obs_map","gov_hacked","gov_decrypted",
@@ -4392,6 +4394,7 @@ document.addEventListener("click", (e) => {
       setFlag("truth_known");
     },
     "open-start": () => $("#start-menu").classList.toggle("hidden"),
+    "hint": () => showHint(),
     "open-objectives": () => openApp("obj"),
     "toggle-objective": () => { $("#objective-panel").classList.toggle("collapsed"); },
     "win-close": () => closeWin(arg),
@@ -4966,12 +4969,10 @@ setInterval(() => {
 }, 2400);
 
 
-let lastActive = Date.now();
-["mousedown", "keydown", "touchstart"].forEach(ev => document.addEventListener(ev, () => { lastActive = Date.now(); }, true));
-setInterval(() => {
-  if (!S.started || S.flags.game_over || S.difficulty !== "easy") return;
-  if (Date.now() - lastActive < 50000) return;
-  lastActive = Date.now();
+/* ---------------- 提示（简单难度 · 手动触发） ----------------
+   原本「闲置 50 秒自动从右下角弹出闪念」已移除；
+   现在改为玩家主动点击任务栏「✦ 提示」按钮（#tb-hint）时给出方向。 */
+function hintPool() {
   const pool = [];
   if (!has("cloud_opened")) pool.push("试试打开「星云网盘」——密码是8位的生日。");
   if (has("cloud_opened") && !prologueDone()) pool.push("照片背面要点一下照片才看得见；也别忘了点「查看文件属性」。");
@@ -4983,9 +4984,23 @@ setInterval(() => {
   if (has("gov_hacked") && !has("gov_decrypted")) pool.push("官方文件是加密的——密码本就是观测站墙上红笔圈出的四位数字。");
   if (has("b_letter") && !has("truth_known")) pool.push("北辰B给的密码是四个汉字，不是数字。");
   if (has("truth_known") && !has("game_over")) pool.push("右侧的任务目标面板里，有一个红色的按钮。");
-  if (!pool.length) pool.push("桌面上那个「系统监控」窗口，偶尔会滚出一些不该被看到的东西。");
-  toast("提 闪念", pool[Math.floor(Math.random() * pool.length)], "", null, 9000);
-}, 8000);
+  return pool;
+}
+let _lastHint = "";
+function currentHint() {
+  const pool = hintPool();
+  // 取「与当前进度最贴合」的那一条（池内最后一条）；连点两次则换前一条，避免重复。
+  if (!pool.length) return "桌面上那个「系统监控」窗口，偶尔会滚出一些不该被看到的东西。";
+  let pick = pool[pool.length - 1];
+  if (pool.length > 1 && pick === _lastHint) pick = pool[pool.length - 2];
+  _lastHint = pick;
+  return pick;
+}
+function showHint() {
+  if (!S.started || S.flags.game_over) return;
+  if (S.difficulty !== "easy") return;
+  toast("提 闪念", currentHint(), "", null, 13000);
+}
 
 
 
