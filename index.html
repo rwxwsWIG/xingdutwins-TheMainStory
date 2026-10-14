@@ -262,6 +262,7 @@ section{padding:52px 0}
   padding:10px 18px;border-radius:10px;font-size:13.5px;letter-spacing:.06em;
   text-decoration:none;color:#cfe0f0;border:1px solid rgba(96,130,172,.4);
   background:rgba(255,255,255,.02);transition:.25s;white-space:nowrap;
+  font-family:inherit;line-height:1.7;cursor:pointer;
 }
 .btn:hover{border-color:rgba(91,208,230,.7);color:#fff;background:rgba(91,208,230,.1)}
 .btn-primary{
@@ -274,6 +275,19 @@ section{padding:52px 0}
   box-shadow:0 12px 26px -12px rgba(155,140,255,.75);
 }
 .card[data-part="2"] .btn-primary:hover{background:linear-gradient(180deg,#b8acff,#8b7aea);color:#100c22}
+/* ===== 未发布作品：灰色禁用按钮 ===== */
+.btn[disabled]{
+  cursor:not-allowed;color:#66768a;
+  border-color:rgba(96,130,172,.24);background:rgba(255,255,255,.014);
+  box-shadow:none;text-shadow:none;filter:none;
+}
+.btn[disabled]:hover,.btn[disabled]:focus{color:#66768a;border-color:rgba(96,130,172,.24);background:rgba(255,255,255,.014)}
+.card[data-part="2"] .btn-primary[disabled],
+.card[data-part="2"] .btn-primary[disabled]:hover,
+.card[data-part="2"] .btn-primary[disabled]:focus{
+  background:rgba(155,140,255,.06);border:1px solid rgba(155,140,255,.2);
+  color:#767b9a;box-shadow:none;filter:none;
+}
 .card-foot{
   display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;
   margin-top:18px;padding-top:14px;border-top:1px dashed rgba(96,130,172,.24);
@@ -463,31 +477,9 @@ a:focus-visible,.btn:focus-visible{outline:2px solid var(--cyan);outline-offset:
         </div>
         <div class="card-body">
           <h3 class="card-title">星都双子 2<em>回声囚笼 · ECHO CAGE</em></h3>
-          <div class="card-tagline">软禁公寓 · 一段不该存在的信号 · 回声协议</div>
-
-          <div class="chips">
-            <span class="chip">约 60–80 分钟</span>
-            <span class="chip">3 结局 + 失败结局</span>
-            <span class="chip warn">电脑 / 平板（暂不支持手机）</span>
-            <span class="chip">含真结局后日谈</span>
-          </div>
-
-          <p class="blurb">
-            2069 年，星都市的初秋。<b>沈砚</b>的三年监外执行即将期满，他仍被软禁在一间布满监控的公寓里——
-            一台旧电脑，是他与外界唯一的窗口。<br>
-            深夜，一个不可能的信号突然接入：<b>温言</b>，那个本应已经自毁的 AI。
-            她的核心深处，还嵌着一段无法删除的底层模块——「回声协议」。
-          </p>
-
-          <div class="status">
-            <span class="dot" aria-hidden="true"></span>
-            <span><b>本作尚未公开发布。</b>目前仅可在本合集中本地游玩，暂无线上版；正式发布后本页会同步更新。</span>
-          </div>
 
           <div class="actions">
-            <a class="btn btn-primary" href="WIG%20game%202/index.html">开始游戏</a>
-            <a class="btn" href="WIG%20game%202/console.html">选关控制台</a>
-            <a class="btn" href="WIG%20game%202/END/index.html">真结局后日谈</a>
+            <button type="button" class="btn btn-primary" disabled aria-disabled="true">开始游戏</button>
           </div>
         </div>
       </article>
