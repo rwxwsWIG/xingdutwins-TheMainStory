@@ -11,13 +11,16 @@ const S = {
   ui: {
     mail: { acct: "me", sel: null, acctSel: "me", filter: "" },
     cloud: { view: null },
-    browser: { page: "home", query: "", results: null, pageUrl: "search.xd.net/home" },
+    // 星搜可以开多个窗口：每个实例一份独立状态，S.ui.browser 永远指向「当前操作的那个」
+    browsers: { browser: { page: "home", query: "", results: null, pageUrl: "search.xd.net/home", token: 0 } },
+    browserId: "browser",
     remote: { view: "desktop" },
     id: { mode: "press", pressLogged: false, backdoorLogged: false, query: "", archQuery: "", recheck: false, tapeDecrypted: false },
     voice: { sel: null, vpA: "", vpB: "", vpResult: "" },
     cms: { tab: "tips" },
     chat: { msgs: [], initialized: false },
     map: { view: "city" },
+    phone: { num: "", msg: "", state: "" },   // 电话应用：手动输入号码拨号
     obs: { view: "outside", unlocked: false, tried: [] },
   },
   windows: {},
@@ -28,11 +31,56 @@ const S = {
   _passOk: null,
   _passTries: 0,
   _passForceHint: "",
+  epi: null,   // 后日谈状态；结构由 END/epilogue.js 维护
 };
 
 const $ = (sel) => document.querySelector(sel);
 const has = (f) => !!S.flags[f];
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+
+/* ---------- 星搜多窗口 ----------
+   S.ui.browsers 里每个实例一份状态，key 形如 browser / browser#2 / browser#3；
+   S.ui.browser 是一个 getter，永远返回「当前正在操作的那个实例」——
+   这样原有的 40 多处 S.ui.browser.xxx 写法一行都不用改。 */
+function brBlank() {
+  return { page: "home", query: "", results: null, pageUrl: "search.xd.net/home", token: 0, hist: ["home"], hi: 0 };
+}
+function brId() { return S.ui.browserId || "browser"; }
+function isBrowserId(id) { return id === "browser" || String(id).indexOf("browser#") === 0; }
+function appDef(id) { return APPS[id] || APPS[String(id).split("#")[0]] || APPS.browser; }
+Object.defineProperty(S.ui, "browser", {
+  get() {
+    const id = brId();
+    if (!S.ui.browsers[id]) S.ui.browsers[id] = brBlank();
+    return S.ui.browsers[id];
+  },
+  set(v) { S.ui.browsers[brId()] = v; },
+});
+
+/* ---------- 后日谈挂载点 ----------
+   后日谈《灯塔》的剧情、邮件、场景与状态机全部在 END/epilogue.js 中，
+   通过 window.EPI 接入主游戏。这里只声明调用协议：
+   若该文件缺失（例如只拿主游戏本体），退回空实现，主线照常可玩。 */
+const EPI = Object.assign({
+  isActive: () => false,
+  init: () => {},
+  start: () => {},
+  reset: () => {},
+  setDocName: () => {},
+  showReplayEntry: () => {},
+  icons: () => [],
+  objectiveText: () => "",
+  objectiveList: () => [],
+  objectivesHtml: () => "",
+  activeDocHtml: () => null,
+  logBlock: () => "",
+  mailTipFor: () => "",
+  updateObjectiveHint: () => {},
+  onMailClosed: () => {},
+  onObjectiveClick: () => false,
+  onEnding: () => {},
+  handleAction: () => false,
+}, window.EPI || {});
 
 
 let _audioUnlocked = false;
@@ -83,6 +131,15 @@ function toast(title, body, kind = "", onClick = null, ms = 10000) {
   const dismiss = () => { el.classList.add("out"); setTimeout(() => el.remove(), 320); };
   el.onclick = () => { if (onClick) onClick(); dismiss(); };
   el.querySelector(".t-close").addEventListener("click", (e) => { e.stopPropagation(); dismiss(); });
+  el._dismiss = dismiss;
+
+  // 同屏最多 3 条（手机 2 条）：再多就会往上堆到盖住任务目标面板 / 右侧角标 / 邮件正文
+  const cap = window.innerWidth <= 760 ? 2 : 3;
+  const live = Array.from(area.querySelectorAll(".toast:not(.out)"));
+  while (live.length >= cap) {
+    const old = live.shift();
+    if (old && old._dismiss) old._dismiss();
+  }
 
   // —— 同屏已有其它提示时自动延长留存时间：避免两条同时弹出时来不及看清 ——
   const others = area.querySelectorAll(".toast:not(.out)").length;
@@ -258,6 +315,7 @@ const APPS = {
   remote:  { name: "远程连接 · LIN-PC",  glyph: "远", w: 700, h: 540 },
   chat:    { name: "加密频道 · 加密用户BC",     glyph: "密", w: 560, h: 620 },
   map:     { name: "星途地图",            glyph: "图", w: 720, h: 680 },
+  phone:   { name: "电话 · 拨号盘",       glyph: "话", w: 360, h: 580 },
   id:      { name: "星都居民ID系统",      glyph: "证", w: 660, h: 560 },
   voice:   { name: "语音助手 · 星灵",     glyph: "声", w: 660, h: 620 },
   log:     { name: "系统监控 · 日志",     glyph: "监", w: 640, h: 460 },
@@ -266,7 +324,10 @@ const APPS = {
 };
 
 function openApp(appId) {
-  if (appId === "obj" && S.difficulty !== "easy") {
+  if (appId === "obj" && EPI.isActive()) {
+    // 后日谈第六拍：点击任务目标＝进入法庭（其余拍照常开窗）
+    if (EPI.onObjectiveClick()) return;
+  } else if (appId === "obj" && S.difficulty !== "easy") {
     toast(" 普通难度", "任务目标与提示已关闭。卡住的话……攻略文件在游戏目录里。", "", null, 6000);
     return;
   }
@@ -275,8 +336,9 @@ function openApp(appId) {
     renderIcons();
   }
   if (S.windows[appId]) { focusWin(appId); return; }
+  if (isBrowserId(appId)) S.ui.browserId = appId;
   if (appId === "mail") S.ui.mail.sel = null;
-  const a = APPS[appId];
+  const a = appDef(appId);
   const el = document.createElement("div");
   el.className = "window active";
   el.dataset.app = appId;
@@ -308,12 +370,19 @@ function openApp(appId) {
 function closeWin(appId) {
   if (!S.windows[appId]) return;
   if (appId === "voice") { stopVoiceAudio(); S.ui.voice.sel = null; }
+  // 星搜：关掉这个实例就回到主页（实例状态随窗口一起删掉）
+  if (isBrowserId(appId)) {
+    delete S.ui.browsers[appId];
+    if (brId() === appId) S.ui.browserId = "browser";
+  }
   const el = S.windows[appId].el;
   delete S.windows[appId];
   el.classList.add("closing");
   beep(420, .05, .02);
   setTimeout(() => el.remove(), 150);
   updateTaskbar();
+  // 后日谈的「邮件判定」交给后日谈模块：读完信 → 黑屏进入下一步；未读只提醒
+  if (appId === "mail") EPI.onMailClosed();
 }
 function focusWin(appId) {
   const w = S.windows[appId]; if (!w) return;
@@ -366,10 +435,11 @@ function updateTaskbar() {
   document.body.classList.toggle("has-win", Object.keys(S.windows).length > 0);
   const tb = $("#tb-windows"); tb.innerHTML = "";
   Object.entries(S.windows).forEach(([id, w]) => {
-    const a = APPS[id];
+    const a = appDef(id);
     const b = document.createElement("div");
     b.className = "tb-win" + (w.el.classList.contains("active") && !w.minimized ? " active" : "");
-    b.innerHTML = `${miniIcon(id)}<span>${a.name.split("·")[0].trim()}</span>`;
+    const suffix = id.indexOf("#") > -1 ? " " + id.split("#")[1] : "";
+    b.innerHTML = `${miniIcon(id)}<span>${a.name.split("·")[0].trim()}${suffix}</span>`;
     b.onclick = () => {
       if (w.minimized) focusWin(id);
       else if (w.el.classList.contains("active")) { w.minimized = true; w.el.style.display = "none"; updateTaskbar(); }
@@ -384,10 +454,10 @@ function refreshAll() { Object.keys(S.windows).forEach(refreshApp); renderIcons(
 const ICON_COLORS = {
   cms: "#5aa9e6", mail: "#e6b45a", browser: "#52d0a8", cloud: "#7f9ff0",
   remote: "#f08a72", chat: "#b98af0", map: "#4ae0c0", id: "#e6d05a", voice: "#56c8ea",
-  log: "#8a9aa8", obj: "#9b8cf5",
+  log: "#8a9aa8", obj: "#9b8cf5", phone: "#4ac9a0",
 };
 function iconColorStyle(id) {
-  const c = ICON_COLORS[id] || "#5aa9e6";
+  const c = ICON_COLORS[id] || ICON_COLORS[String(id).split("#")[0]] || "#5aa9e6";
   const r = parseInt(c.slice(1, 3), 16), g = parseInt(c.slice(3, 5), 16), b = parseInt(c.slice(5, 7), 16);
   return `--ic:${c};--icg:rgba(${r},${g},${b},.45)`;
 }
@@ -403,7 +473,8 @@ const ICON_SVG = {
   log: `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M21 20H3"/></svg>`,
   obj: `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/></svg>`,
   remote: `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M9 20h6M12 16v4"/></svg>`,
-  chat: `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-5 4V6a1 1 0 0 1 1-1z"/><path d="M8 10h8M8 13h5"/></svg>`
+  chat: `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H9l-5 4V6a1 1 0 0 1 1-1z"/><path d="M8 10h8M8 13h5"/></svg>`,
+  phone: `<svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h3l1.5 4-2 1.5a12 12 0 0 0 6 6l1.5-2 4 1.5v3a2 2 0 0 1-2.2 2A16.5 16.5 0 0 1 4.5 5.7 2 2 0 0 1 6.5 3.5z"/></svg>`
 };
 
 
@@ -619,9 +690,9 @@ function toastGlyph(title) {
   return esc(title);
 }
 
-function iconSVG(id) { return ICON_SVG[id] || ""; }
+function iconSVG(id) { return ICON_SVG[id] || ICON_SVG[String(id).split("#")[0]] || ""; }
 function miniIcon(id) {
-  const c = ICON_COLORS[id] || "#5aa9e6";
+  const c = ICON_COLORS[id] || ICON_COLORS[String(id).split("#")[0]] || "#5aa9e6";
   const r = parseInt(c.slice(1, 3), 16), g = parseInt(c.slice(3, 5), 16), b = parseInt(c.slice(5, 7), 16);
   return `<span class="mini-ic" style="--ic:${c};--icg:rgba(${r},${g},${b},.45)">${iconSVG(id)}</span>`;
 }
@@ -640,6 +711,11 @@ function renderIcons() {
   ];
   if (has("remote_granted")) icons.splice(4, 0, { id: "remote", glyph: "远", label: "远程连接 LIN-PC", badge: 0 });
   if (has("remote_granted")) icons.splice(5, 0, { id: "chat", glyph: "密", label: "加密频道 · 加密用户BC", badge: has("chat_unread") ? 1 : 0 });
+  // 第二章起：电话应用可用（照片线索指向一部老电话）
+  if (has("ch1_done")) icons.push({ id: "phone", glyph: "话", label: "电话", badge: 0 });
+  // 后日谈阶段多出来的图标（终刊辞 / 遗稿）
+  EPI.icons().forEach(ic => icons.push(ic));
+  EPI.setDocName();
   const area = $("#icon-area"); area.innerHTML = "";
   icons.forEach(ic => {
     const d = document.createElement("div");
@@ -779,19 +855,45 @@ const pendingMails = {
 
 注意安全。真查到什么，先跟我说。
 
-——陈姐`,
+    ——陈姐`,
     actions: []
   },
+  // D_张的站内私信改为邮件送达（发件人未知）——进入暗涌后投递
+  zhang_mail: {
+    id: "m_zhang_mail", from: "未知发件人", time: "10-13 21:02", unread: true,
+    subject: "临港，东郊，3号仓库",
+    body: `那我就少废话，你就记三件事：临港，东郊，化工厂3号仓库。10月15日夜里，有一批「货」要转走。里面可能有我儿子，还有老林的媳妇。
+
+这批货不只是人——还有辰天点名要「销毁」的实验室废料。辰天法务部的人会亲自押车，他们的手段比警察还黑。
+
+信不信随你。信的话，就别磨蹭。
+（这封信发完就作废。别回。）`,
+    actions: []
+  },
+
 };
 
-function deliverMail(key, delay = 1800) {
-  setTimeout(() => {
-    inbox.push(JSON.parse(JSON.stringify(pendingMails[key])));
+// 待投递邮件的定时器：可被 clearMailTimers() 一并取消（退出后日谈时不留残余投递）
+const _mailTimers = [];
+function clearMailTimers() { _mailTimers.forEach(t => clearTimeout(t)); _mailTimers.length = 0; }
+function deliverMail(key, delay = 1800, opts = null) {
+  const t = setTimeout(() => {
+    const i = _mailTimers.indexOf(t);
+    if (i >= 0) _mailTimers.splice(i, 1);
     const m = pendingMails[key];
+    if (!m) return;
+    // 同一封邮件只投递一次：后日谈可以反复进入，重复投递会产生同 id 的重复条目
+    if (inbox.some(x => x.id === m.id)) {
+      if (S.windows.mail) refreshApp("mail");
+      return;
+    }
+    inbox.push(JSON.parse(JSON.stringify(m)));
     const tb = $("#taskbar");
     if (tb) { tb.classList.add("tb-flash"); setTimeout(() => tb.classList.remove("tb-flash"), 3200); }
     beep(988, .3, .12);
-    toast("新邮件 · " + m.from, esc(m.subject), "", () => {
+    // 静默投递：调用方本拍已经发过带提示的通知，不再重复弹「新邮件」
+    const quiet = !!(opts && opts.quiet);
+    if (!quiet) toast("新邮件 · " + m.from, esc(m.subject), "", () => {
       openApp("mail");
       S.ui.mail.acct = "me"; S.ui.mail.acctSel = "me"; S.ui.mail.sel = m.id;
       refreshAll();
@@ -799,6 +901,7 @@ function deliverMail(key, delay = 1800) {
     renderIcons();
     if (S.windows.mail) refreshApp("mail");
   }, delay);
+  _mailTimers.push(t);
 }
 function mailFilter(v) {
   const prev = document.getElementById("mail-filter");
@@ -882,9 +985,7 @@ const evidences = [
     need: () => has("truth_known"),
     transcript: `「……我受够了。他们强迫我在评估报告上做手脚，让那些『多余』的孩子看起来有心理问题……我做过最坏的一件事，就是把一个本来很健康的小男孩标记成『反社会』，因为他父母不肯给贿赂金……那个男孩好像姓林……我……我每天晚上都做噩梦……后来我才知道，是辰天法务部的律师告诉我，只要把低分孩子改成冗余体，他们就能顺利处理掉。辰天说，这是为了星都的『人口优化』……」
 
-（录音中断。）
-
-—— 一声枪响。`
+（录音中断。）`
   },
 ];
 const VOICE_AUDIO = { v1: "assets/voice_v1.wav", v2: "assets/voice_v2.wav", v3: "assets/voice_v3.wav", v4: "assets/voice_v4.wav", v5: "assets/voice_v5.wav" };
@@ -1170,36 +1271,95 @@ function doSearch(q) {
   q = (q || "").trim();
   if (!q) return;
   recordSearch(q);
-  const token = (S.searchToken = (S.searchToken || 0) + 1);
-  S.ui.browser.query = q;
-  S.ui.browser.results = "searching";
-  S.ui.browser.page = "results";
+  const id = brId();
+  const br = S.ui.browser;              // 当前这个星搜窗口
+  const token = br.token = (br.token || 0) + 1;
+  br.query = q;
+  br.results = "searching";
+  br.page = "results";
   refreshAll();
   beep(480, .05, .03);
   setTimeout(() => {
-    if (token !== S.searchToken || !S.windows.browser) return;
-    S.ui.browser.results = searchSync(q);
-    refreshApp("browser");
+    if (br.token !== token || !S.windows[id]) return;
+    br.results = searchSync(q);
+    refreshApp(id);
     ding();
   }, 600 + Math.random() * 500);
 }
 
 
+/* ---------------- 地址栏：直接输入网址打开 ----------------
+   地址栏以前只是展示，现在可以粘贴网址进去（gov.xd.net/admin、地图实景页等）。 */
+const URL_PAGES = {
+  "sos.xd.net/home": "home",
+  "sos.xd.net": "home",
+  "search.xd.net": "home",
+  "anyong.onion": "forum",
+  "anyong.onion/t/90021": "forum_top",
+  "anyong.onion/t/90417": "forum_b2",
+  "anyong.onion/t/91002": "forum_zhang",
+  "gov.xd.net/admin": "gov_hack",
+  "gov.xd.net": "gov_hack",
+  "map.xd.net/place/observatory": "observatory",
+  "map.xd.net/place/hongxing34": "map_34",
+  "map.xd.net/place/lingang_factory": "factory",
+  "map.xd.net/place/wanxiang": "mall",
+  "observer.xd.news": "daily",
+  "www.xdhealth.gov.cn": "gov_health",
+  "www.clc.xd.gov.cn": "center_official",
+  "credit.xd.gov.cn": "credit",
+  "id.xd.gov/leak/cache": "li_doctor",
+  "baike.xd.net/双子计划": "wiki_missing",
+  "baike.xd.net/薛定谔-阿尔茨海默复合症": "wiki_disease",
+  "baike.xd.net/海外深造": "rumor_destroy",
+  "social.xd.net/linbeichen": "social_beichen",
+  "bbs.xd.net/thread/obs_2031": "obs_article",
+  "people.xd.net/search": "missing",
+  "novel.xd.net/shuangzi": "novel",
+  "food.xd.net": "food",
+  "pet.xd.net": "pet",
+};
+function normalizeUrl(raw) {
+  return String(raw || "").trim().toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/[?#].*$/, "")
+    .replace(/\/+$/, "");
+}
+function browserGo(raw) {
+  const u = normalizeUrl(raw);
+  if (!u) return;
+  // 没有点也没有斜杠：当作关键词搜索
+  if (u.indexOf(".") < 0 && u.indexOf("/") < 0) { doSearch(String(raw).trim()); return; }
+  let page = URL_PAGES[u] || null;
+  // 政务内网：手里没有密码本，进去也只有一句「需要密码本」
+  if (page === "gov_hack" && !has("obs_unlocked")) page = "notfound_gov";
+  // 论坛相关页：没通过邀请码校验时一律退回验证页
+  if (page && page.indexOf("forum") === 0 && page !== "forum" && !has("forum_open")) page = "forum";
+  S.ui.browser.page = page || "noresult";
+  refreshApp(brId());
+  beep(520, .05, .03);
+}
+
 function browserChrome(inner) {
   const url = S.ui.browser.pageUrl || "sos.xd.net/home";
   const isHome = S.ui.browser.page === "home";
+  const br = S.ui.browser;
+  const canBack = br.hist && br.hi > 0;
+  const canFwd = br.hist && br.hi < br.hist.length - 1;
   return `<div class="browser-top">
       <div class="browser-nav">
-        <button data-action="browser-back" title="后退" ${isHome ? "disabled" : ""}>←</button>
-        <button data-action="browser-forward" title="前进" disabled>→</button>
+        <button data-action="browser-back" title="后退" ${canBack ? "" : "disabled"}>←</button>
+        <button data-action="browser-forward" title="前进" ${canFwd ? "" : "disabled"}>→</button>
         <button data-action="browser-refresh" title="刷新">↻</button>
         <button data-action="go-home" title="主页">⌂</button>
+        <button data-action="browser-new" title="新开一个星搜窗口" style="font-size:13px">＋</button>
       </div>
       <div class="browser-addr">
         <span class="lock" style="font-style:normal;font-size:10px">SSL</span>
-        <span class="url">${esc(url)}</span>
+        <input class="url br-url" value="${esc(url)}" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="地址栏" placeholder="输入网址或关键词，回车打开">
+        <button class="br-go" data-action="br-go" title="打开">↵</button>
         <span class="sep">|</span>
-        <span style="color:#9aa0a6;font-size:10px">星都公共信息网 · 已通过舆情安全过滤</span>
+        <span style="color:#9aa0a6;font-size:10px" class="addr-status">星都公共信息网 · 已通过舆情安全过滤</span>
       </div>
     </div>
     <div class="browser-page">${inner}</div>`;
@@ -1526,6 +1686,77 @@ function centerSubPage(sub) {
   return centerFrame("home", "");
 }
 
+/* ---------------- 天象观测站 · 星途实景 ----------------
+   原来这里只是一个「信号弱 · 无实景」的灰块，现在改成一张程序化绘制的夜景：
+   圆顶建筑、铁门、路灯、远处城市灯带。纯 SVG，不额外请求图片。 */
+function liveViewSvg() {
+  const stars = [
+    [64,58,1.3],[128,84,1],[186,46,1.6],[242,96,.9],[304,62,1.2],[356,40,1],
+    [418,76,1.4],[472,50,.9],[524,92,1.1],[586,44,1.5],[648,80,1],[702,52,1.2],
+    [756,100,.9],[92,116,1],[268,120,.8],[496,110,1],[664,122,.8],[36,72,.8],[380,104,.7]
+  ].map(function (a) {
+    const x = a[0], y = a[1], r = a[2], o = (0.3 + (r % 1.1) * 0.5).toFixed(2);
+    return '<circle cx="' + x + '" cy="' + y + '" r="' + r + '" opacity="' + o + '"/>';
+  }).join("");
+  const cityLights = [
+    [40,214],[62,220],[88,211],[118,217],[146,224],[172,213],[206,220],[232,209],
+    [262,218],[300,213],[330,221],[560,216],[590,222],[620,212],[650,219],[680,225],[712,214],[744,220],[772,213]
+  ].map(function (a) {
+    return '<rect x="' + a[0] + '" y="' + a[1] + '" width="1.6" height="1.6"/>';
+  }).join("");
+
+  return '<svg class="lv-svg" viewBox="0 0 800 300" preserveAspectRatio="xMidYMid slice" aria-label="天象观测站实景画面">' +
+    '<defs>' +
+      '<linearGradient id="lvSky" x1="0" y1="0" x2="0" y2="1">' +
+        '<stop offset="0" stop-color="#061020"/><stop offset=".44" stop-color="#0c2138"/><stop offset="1" stop-color="#1e3d5c"/>' +
+      '</linearGradient>' +
+      '<radialGradient id="lvCityGlow" cx="50%" cy="100%" r="62%">' +
+        '<stop offset="0" stop-color="#4a7aa8" stop-opacity=".45"/><stop offset="1" stop-color="#4a7aa8" stop-opacity="0"/>' +
+      '</radialGradient>' +
+      '<radialGradient id="lvLamp" cx="50%" cy="50%" r="50%">' +
+        '<stop offset="0" stop-color="#ffe0ac" stop-opacity=".95"/><stop offset=".3" stop-color="#ffb85a" stop-opacity=".3"/><stop offset="1" stop-color="#ffb85a" stop-opacity="0"/>' +
+      '</radialGradient>' +
+      '<radialGradient id="lvWin" cx="50%" cy="50%" r="50%">' +
+        '<stop offset="0" stop-color="#ffcf8a" stop-opacity=".6"/><stop offset="1" stop-color="#ffcf8a" stop-opacity="0"/>' +
+      '</radialGradient>' +
+      '<filter id="lvNoise" x="0" y="0" width="100%" height="100%">' +
+        '<feTurbulence type="fractalNoise" baseFrequency=".85" numOctaves="3" stitchTiles="stitch"/>' +
+        '<feColorMatrix type="saturate" values="0"/>' +
+      '</filter>' +
+    '</defs>' +
+    '<rect width="800" height="300" fill="url(#lvSky)"/>' +
+    '<g fill="#d7e8ff">' + stars + '</g>' +
+    '<ellipse cx="400" cy="224" rx="360" ry="66" fill="url(#lvCityGlow)"/>' +
+    '<path d="M0 230h56v-9h30v6h44v-13h38v9h52v-6h60v11h44v-8h70v8h-58v6H0z" fill="#0b1a28"/>' +
+    '<path d="M700 230h34v-11h40v7h26v-6h-100z" fill="#0b1a28"/>' +
+    '<g fill="#9ec4e2" opacity=".6">' + cityLights + '</g>' +
+    '<rect y="230" width="800" height="70" fill="#0a1420"/>' +
+    '<rect y="230" width="800" height="1.6" fill="#1b3348"/>' +
+    '<rect x="286" y="226" width="228" height="24" fill="#0d1b28"/>' +
+    '<path d="M286 226h228v24H286z" fill="none" stroke="#2c4a66" stroke-width="1"/>' +
+    '<path d="M300 226 A100 100 0 0 1 500 226 Z" fill="#12232f" stroke="#3a6084" stroke-width="1.6"/>' +
+    '<path d="M400 126v100" stroke="#2a4864" stroke-width="1.2"/>' +
+    '<path d="M340 164a60 60 0 0 1 60-38" fill="none" stroke="#2c4c68" stroke-width="1"/>' +
+    '<rect x="392" y="172" width="16" height="5" rx="1" fill="#2f6288" opacity=".85"/>' +
+    '<rect x="374" y="232" width="52" height="18" fill="#060c12" stroke="#1a2c3e"/>' +
+    '<rect x="382" y="235" width="36" height="15" fill="#0e1b26"/>' +
+    '<rect x="394" y="238" width="12" height="12" fill="#ffb85a" opacity=".34"/>' +
+    '<ellipse cx="400" cy="244" rx="34" ry="15" fill="url(#lvWin)"/>' +
+    '<rect x="312" y="234" width="12" height="8" fill="#ffcf8a" opacity=".26"/>' +
+    '<ellipse cx="318" cy="238" rx="16" ry="10" fill="url(#lvWin)" opacity=".7"/>' +
+    '<g stroke="#2b465c" stroke-width="2" fill="none">' +
+      '<path d="M528 226v-68M556 226v-68M584 226v-68M612 226v-68M640 226v-68M668 226v-68M696 226v-68"/>' +
+      '<path d="M522 160h182M522 186h182"/>' +
+    '</g>' +
+    '<path d="M512 156h4v70h-4zM702 156h4v70h-4z" fill="#33506a"/>' +
+    '<rect x="716" y="172" width="3" height="54" fill="#22384c"/>' +
+    '<circle cx="717" cy="170" r="40" fill="url(#lvLamp)" opacity=".5"/>' +
+    '<circle cx="717" cy="170" r="3.2" fill="#ffe2b4"/>' +
+    '<ellipse cx="717" cy="230" rx="30" ry="7" fill="#ffb85a" opacity=".1"/>' +
+    '<rect width="800" height="300" filter="url(#lvNoise)" opacity=".05"/>' +
+  '</svg>';
+}
+
 const PAGES = {
   home: () => browserChrome(`
     <div class="se-home">
@@ -1799,7 +2030,7 @@ const PAGES = {
       </div>
       <div class="fb-body">
         <div class="fb-left">
-          <div class="fb-card fb-left-user"><img class="fb-mini-ava" src="assets/avatar_bc.png" alt="北辰"><b>北辰_星辰</b></div>
+          <div class="fb-card fb-left-user"><img loading="lazy" decoding="async" class="fb-mini-ava" src="assets/avatar_bc.webp" alt="北辰"><b>北辰_星辰</b></div>
           <div class="fb-card">
             <div class="fb-link">${svgIcon("user")} 好友</div>
             <div class="fb-link">${svgIcon("photo")} 照片</div>
@@ -1815,7 +2046,7 @@ const PAGES = {
           <div class="fb-profile">
             <div class="fb-cover"></div>
             <div class="fb-profile-head">
-              <div class="fb-avatar"><img src="assets/avatar_bc.png" alt="北辰" referrerpolicy="no-referrer"></div>
+              <div class="fb-avatar"><img loading="lazy" decoding="async" src="assets/avatar_bc.webp" alt="北辰" referrerpolicy="no-referrer"></div>
               <div class="fb-pinfo">
                 <div class="fb-pname">北辰_星辰</div>
                 <div class="fb-pid">@linbeichen</div>
@@ -1827,7 +2058,7 @@ const PAGES = {
           <div class="fb-bio-card">18岁 · 天秤座 · 喜欢星星和旧收音机。</div>
           <div class="fb-post">
             <div class="fb-post-head">
-              <img class="fb-post-ava" src="assets/avatar_bc.png" alt="北辰">
+              <img loading="lazy" decoding="async" class="fb-post-ava" src="assets/avatar_bc.webp" alt="北辰">
               <div class="fb-post-meta"><div class="fb-post-author">北辰_星辰</div><div class="fb-post-time">2066-10-15 · 每年固定动态</div></div>
             </div>
             <div class="fb-post-body">祝我自己18岁生日快乐</div>
@@ -1835,7 +2066,7 @@ const PAGES = {
           </div>
           <div class="fb-post">
             <div class="fb-post-head">
-              <img class="fb-post-ava" src="assets/avatar_bc.png" alt="北辰">
+              <img loading="lazy" decoding="async" class="fb-post-ava" src="assets/avatar_bc.webp" alt="北辰">
               <div class="fb-post-meta"><div class="fb-post-author">北辰_星辰</div><div class="fb-post-time">2066-10-12 01:33</div></div>
             </div>
             <div class="fb-post-body">睡不着。楼下的便利店店员说，有个穿黑西装的男人在打听我爸妈。</div>
@@ -1843,7 +2074,7 @@ const PAGES = {
           </div>
           <div class="fb-post">
             <div class="fb-post-head">
-              <img class="fb-post-ava" src="assets/avatar_bc.png" alt="北辰">
+              <img loading="lazy" decoding="async" class="fb-post-ava" src="assets/avatar_bc.webp" alt="北辰">
               <div class="fb-post-meta"><div class="fb-post-author">北辰_星辰</div><div class="fb-post-time">2066-10-11 22:47</div></div>
             </div>
             <div class="fb-post-body">爸妈手机全关机第四天。公司说他们请了年假，可我妈最讨厌请假了。</div>
@@ -1851,7 +2082,7 @@ const PAGES = {
           </div>
           <div class="fb-post">
             <div class="fb-post-head">
-              <img class="fb-post-ava" src="assets/avatar_bc.png" alt="北辰">
+              <img loading="lazy" decoding="async" class="fb-post-ava" src="assets/avatar_bc.webp" alt="北辰">
               <div class="fb-post-meta"><div class="fb-post-author">北辰_星辰</div><div class="fb-post-time">2066-10-08 07:02</div></div>
             </div>
             <div class="fb-post-body">早上送爸妈出门，去临港的高铁票，说好两天就回。可我心里总觉得不踏实。</div>
@@ -1859,7 +2090,7 @@ const PAGES = {
           </div>
           <div class="fb-post">
             <div class="fb-post-head">
-              <img class="fb-post-ava" src="assets/avatar_bc.png" alt="北辰">
+              <img loading="lazy" decoding="async" class="fb-post-ava" src="assets/avatar_bc.webp" alt="北辰">
               <div class="fb-post-meta"><div class="fb-post-author">北辰_星辰</div><div class="fb-post-time">2066-10-05 20:14</div></div>
             </div>
             <div class="fb-post-body">老爸最近总在饭桌上嘀咕「为了北辰，我什么都愿意」。这话听着，总觉得哪里怪怪的。</div>
@@ -1867,16 +2098,16 @@ const PAGES = {
           </div>
           <div class="fb-post">
             <div class="fb-post-head">
-              <img class="fb-post-ava" src="assets/avatar_bc.png" alt="北辰">
+              <img loading="lazy" decoding="async" class="fb-post-ava" src="assets/avatar_bc.webp" alt="北辰">
               <div class="fb-post-meta"><div class="fb-post-author">北辰_星辰</div><div class="fb-post-time">2066-09-20 21:03</div></div>
             </div>
             <div class="fb-post-body">天文社招新海报贴了一整面墙。我还是最喜欢旧收音机里的静电声，像星星在说话。</div>
-            <div class="fb-post-img"><img src="assets/post_stars.jpg" alt="窗台上的旧收音机与星空" referrerpolicy="no-referrer"></div>
+            <div class="fb-post-img"><img loading="lazy" decoding="async" src="assets/post_stars.webp" alt="窗台上的旧收音机与星空" referrerpolicy="no-referrer"></div>
             <div class="fb-post-actions"><span data-action="fb-interact">赞 204</span><span data-action="fb-interact">评 38</span><span data-action="fb-interact">享 分享</span></div>
           </div>
           <div class="fb-post">
             <div class="fb-post-head">
-              <img class="fb-post-ava" src="assets/avatar_bc.png" alt="北辰">
+              <img loading="lazy" decoding="async" class="fb-post-ava" src="assets/avatar_bc.webp" alt="北辰">
               <div class="fb-post-meta"><div class="fb-post-author">北辰_星辰</div><div class="fb-post-time">2066-09-01 08:30</div></div>
             </div>
             <div class="fb-post-body">高三开学。班主任说我们这届刚好赶上「成人礼测试」，让大家加油。</div>
@@ -2027,6 +2258,11 @@ const PAGES = {
     </div>
     ${obsFooter("独立媒体 · 不接广告 · 欢迎私信爆料")}
   `),
+  obs_shutdown: () => browserChrome(`
+    <div style="min-height:380px;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:80px 24px;background:#fff">
+      <div style="font-size:16px;color:#202124;line-height:2;letter-spacing:.5px">该网站因违反相关法律法规，已被依法关停。</div>
+      <div style="margin-top:26px;font-size:12px;color:#9aa0a6;font-family:var(--mono)">observer.xd.news · 无法访问</div>
+    </div>`),
   obs_comments: () => browserChrome(`
     ${obsNav("评论")}
     <div style="padding:28px 36px;background:#fff;max-width:820px;margin:0 auto">
@@ -2620,23 +2856,72 @@ const PAGES = {
   gov_hack: () => {
     if (has("gov_hacked")) return govHackResult();
     return browserChrome(`
-      <div class="gov-page">
-        <div class="web-header"><h2>星都政务内网 · 管理后台</h2><span class="wh-url">gov.xd.net/admin</span></div>
-        <div class="gov-banner" style="background:linear-gradient(90deg,#2a1a1a,#3a1a1a);border-color:#6a2a2a;">
-          ⚠ 此系统仅供内部人员使用 · 所有操作将被审计
+      <div class="gov-admin">
+        <div class="ga-top">
+          <div class="ga-brand"><span class="ga-mark">星</span>星都政务内网<span class="ga-ver">ADMIN CONSOLE v4.2</span></div>
+          <div class="ga-meta">节点 10.0.0.254 · 内网 · <span class="ga-live">审计中</span></div>
         </div>
-        <div class="id-login" style="margin-top:10px">
-          <div style="font-size:12px;color:var(--dim);margin-bottom:6px">管理员登录</div>
-          <div class="id-form">
-            <input value="admin" readonly style="color:var(--warn);background:#0a121d">
-            <input id="gov-pass" type="password" placeholder="密码（已失效，请使用漏洞）" autocomplete="off">
-          </div>
-          <div style="display:flex;gap:14px;justify-content:center;margin-top:4px">
-            <button class="btn" disabled style="opacity:.4">登 录</button>
-            <button class="btn btn-danger" data-action="hack-gov">${svgIcon("tools")} 漏洞利用 · SQL 注入</button>
-          </div>
-          <div class="locked-note" style="margin-top:14px">系统维护日志：默认密码已于 2066-10-01 修改，新密码已同步至各科室负责人。</div>
-          <div id="hack-terminal" style="margin-top:16px;display:none"></div>
+        <div class="ga-warn">⚠ 此系统仅供内部人员使用 · 所有操作将被审计</div>
+        <div class="ga-body">
+          <aside class="ga-side">
+            <div class="ga-nav on">仪表盘</div>
+            <div class="ga-nav">户籍库</div>
+            <div class="ga-nav">评估档案</div>
+            <div class="ga-nav">文件库</div>
+            <div class="ga-nav">审计日志</div>
+            <div class="ga-nav">系统设置</div>
+            <div class="ga-side-foot">会话：未认证<br>权限：GUEST</div>
+          </aside>
+          <main class="ga-main">
+            <div class="ga-stats">
+              <div class="ga-stat"><b>412,806</b><span>在册居民</span></div>
+              <div class="ga-stat"><b>12,084</b><span>评估档案</span></div>
+              <div class="ga-stat"><b>1,306</b><span>待转运</span></div>
+              <div class="ga-stat hot"><b>3</b><span>未授权访问</span></div>
+            </div>
+            <div class="ga-panel">
+              <div class="ga-ph">文件库<span class="ga-tag">敏感等级 A</span></div>
+              <div class="ga-file" data-action="gov-file">
+                <span class="gf-ic">DOC</span>
+                <span class="gf-name">双子计划_实施方案_2048.docx</span>
+                <span class="gf-meta">AES-256 · 仅管理员</span>
+                <span class="gf-open">打开</span>
+              </div>
+              <div class="ga-file dim">
+                <span class="gf-ic">XLS</span>
+                <span class="gf-name">2066年度成人礼评估汇总.xlsx</span>
+                <span class="gf-meta">内部</span>
+                <span class="gf-open">打开</span>
+              </div>
+              <div class="ga-file dim">
+                <span class="gf-ic">XLS</span>
+                <span class="gf-name">3号仓库转运清单_10月.xlsx</span>
+                <span class="gf-meta">绝密</span>
+                <span class="gf-open">打开</span>
+              </div>
+            </div>
+            <div class="ga-panel">
+              <div class="ga-ph">管理员会话</div>
+              <div class="ga-field"><label>ACCOUNT</label><input value="admin" readonly></div>
+              <div class="ga-field"><label>PASSWORD</label><input id="gov-pass" type="password" placeholder="密码已失效（2066-10-01 轮换）" autocomplete="off"></div>
+              <div class="ga-btns">
+                <button class="btn" disabled style="opacity:.4">登 录</button>
+                <button class="btn btn-danger" data-action="hack-gov">${svgIcon("tools")} 漏洞利用 · SQL 注入</button>
+              </div>
+              <div class="ga-note">系统维护日志：默认密码已于 2066-10-01 修改，新密码已同步至各科室负责人。</div>
+              <div id="hack-terminal"></div>
+            </div>
+            <div class="ga-panel">
+              <div class="ga-ph">审计日志<span class="ga-live">实时</span></div>
+              <div class="ga-audit">
+                <div><span>09:12:33</span> GET /admin/dashboard 200 · 10.0.0.31</div>
+                <div><span>09:18:02</span> POST /admin/export 200 · 10.0.0.44</div>
+                <div><span>09:24:51</span> GET /archive/query 200 · 10.0.0.17</div>
+                <div><span>09:33:10</span> GET /admin/files 403 · 10.0.0.9</div>
+                <div class="hot"><span>09:41:07</span> GET /admin/login 200 · 10.0.0.0（来源未登记）</div>
+              </div>
+            </div>
+          </main>
         </div>
       </div>
     `);
@@ -2674,12 +2959,9 @@ const PAGES = {
     <div class="gov-page">
       <div class="web-header"><h2>星途地图 · 实景</h2><span class="wh-url">map.xd.net/place/observatory · 实景</span></div>
       <div class="gov-article" style="padding:0">
-        <div style="background:linear-gradient(180deg,#0a1628 0%,#1a2a4a 60%,#2a3a5a 100%);height:200px;border-radius:8px;position:relative;overflow:hidden;margin-bottom:16px">
-          <div style="position:absolute;top:20px;left:50%;transform:translateX(-50%);width:120px;height:80px;background:#1a2a3a;border-radius:60px 60px 0 0;border:2px solid #3a4a5a"></div>
-          <div style="position:absolute;top:90px;left:50%;transform:translateX(-50%);width:140px;height:60px;background:#0f1a2a;border:2px solid #2a3a4a;border-radius:4px"></div>
-          <div style="position:absolute;top:100px;left:calc(50% - 20px);width:40px;height:50px;background:#1a2a1a;border:1px solid #2a4a2a;border-radius:2px"></div>
-          <div style="position:absolute;top:108px;left:calc(50% - 14px);width:8px;height:8px;background:#ffaa44;box-shadow:0 0 8px #ffaa44;border-radius:50%"></div>
-          <div style="position:absolute;bottom:10px;right:14px;font-size:10px;color:#5a7a9a">● 信号弱 · 星途实景 · 2066-10-14</div>
+        <div class="lv-wrap">
+          ${liveViewSvg()}
+          <div class="lv-hud"><span class="lv-dot"></span>星途实景 · 低照度增强 · 2066-10-14 23:41</div>
         </div>
         <p><b>天象观测站 · 圆顶建筑</b></p>
         <p>你站在铁门外，先做了一次<b>远程扫描</b>：局域网内检测到一台旧笔记本电脑（ZHANG-PC）在线，22/3389 端口开放。</p>
@@ -2753,7 +3035,6 @@ function forumLocked() {
     <p style="color:#5e8a70;font-size:13px;line-height:2">「暗涌」不接受游客。<br>请从<a data-action="open-page" data-arg="forum" style="color:#7fd6a0;cursor:pointer">论坛首页</a>完成身份校验。</p></div>`);
 }
 function forumHome() {
-  if (!has("dm_read")) setFlag("dm_read");
   return browserChrome(`
     <div class="dark-forum">
     <div class="an-banner">
@@ -2767,25 +3048,27 @@ function forumHome() {
       <span>节点 <b>onion #7</b></span>
       <span style="margin-left:auto">v3.1.2 · 端到端加密已启用</span>
     </div>
-    <div class="an-dm">
-      <div class="an-dm-head">站内私信 · D_张 <span class="an-dm-new">新</span></div>
-      <div class="an-dm-body">是那个记者吧，小伙子。老林提过你。<br><br>那我就少废话，你就记三件事：临港，东郊，化工厂3号仓库。10月15日夜里，有一批「货」要转走。里面可能有我儿子，还有老林的媳妇。<br><br>这批货不只是人——还有辰天点名要「销毁」的实验室废料。辰天法务部的人会亲自押车，他们的手段比警察还黑。<br><br>信不信随你。信的话，就别磨蹭。<br><br>——D_张</div>
-      <div class="an-dm-foot">2066-10-13 21:02 · 端到端加密送达</div>
+    <div class="an-notice">
+      <span class="an-notice-ic">${svgIcon("letter")}</span>
+      <div>有人在站外给你递了话——<b>去邮箱查收</b>。这里不留私信，也不问你是谁。</div>
     </div>
     <div class="web-header" style="border-color:#1f3a2a"><h2>讨论区</h2><span class="wh-url">anyong.onion · 身份已校验 ✓</span></div>
     <div class="forum-thread" data-action="open-page" data-arg="forum_top">
       <div style="flex:1"><div class="ft-title">【置顶】献给所有被遗忘的「冗余体」</div>
       <div class="ft-meta">守夜人 · 2055-06-01 · 持续更新 · 一万个编号</div></div>
+      <div class="ft-flag ${has("forum_read_top") ? "read" : "unread"}">${has("forum_read_top") ? "已读" : "未读"}</div>
       <div class="ft-rep">8 回复</div>
     </div>
     <div class="forum-thread" data-action="open-page" data-arg="forum_b2">
       <div style="flex:1"><div class="ft-title">我的父母选择了我的复制品。</div>
       <div class="ft-meta">另一个我 · 2066-10-13 03:33 · <span class="danger">含高危关键词</span></div></div>
+      <div class="ft-flag ${has("forum_read_b2") ? "read" : "unread"}">${has("forum_read_b2") ? "已读" : "未读"}</div>
       <div class="ft-rep">7 回复</div>
     </div>
     <div class="forum-thread" data-action="open-page" data-arg="forum_zhang">
       <div style="flex:1"><div class="ft-title">如果有人看到我的家人，请告诉我。</div>
       <div class="ft-meta">D_张 · 2066-10-13 20:41 · 寻人</div></div>
+      <div class="ft-flag ${has("forum_read_zhang") ? "read" : "unread"}">${has("forum_read_zhang") ? "已读" : "未读"}</div>
       <div class="ft-rep">6 回复</div>
     </div>
     <div class="forum-thread" data-action="open-page" data-arg="forum_ct">
@@ -2798,7 +3081,7 @@ function forumHome() {
       <div class="ft-meta">[站务：该帖作者已「赴海外深造」]</div></div>
       <div class="ft-rep">—</div>
     </div>
-    <div class="hint-box">站规第一条：不要在站内留下任何能定位你真实身份的信息。D_张的私信已在上方面板送达。</div>
+    <div class="hint-box">站规第一条：不要在站内留下任何能定位你真实身份的信息。那封信没有署名，也不走站内——去<b>邮箱客户端</b>看看。</div>
     </div>`);
 }
 function forumThread(t) {
@@ -2951,7 +3234,7 @@ function cloudView(id) {
       <button class="btn fv-back" data-action="cloud-home">← 返回</button>
       <h3 style="margin:10px 0 14px">${svgIcon("photo")} 离职证明.png</h3>
       <div class="doc-scan">
-        <img src="assets/离职证明.png" alt="辰天生物科技有限公司 · 人事部 · 离职证明（扫描件）" draggable="false">
+        <img loading="lazy" decoding="async" src="assets/离职证明.webp" alt="辰天生物科技有限公司 · 人事部 · 离职证明（扫描件）" draggable="false">
       </div>
       <div class="pf-hint">${svgIcon("file")} 扫描件 · 1408 × 1996 · 2048-04-30</div>
       <div class="hint-box" style="margin-top:12px">文件末尾的加密提示写着：<br><span class="mono" style="color:#8fb4d8">「我的父母因为发现了公司的一个秘密被开除了，他们让我绝对不要对任何人说。」</span></div>
@@ -3054,14 +3337,14 @@ function remotePhoto(v) {
   if (v === "photo1") {
     inner = `
       <div class="photo-frame" style="cursor:default"><div class="pf-img" style="height:220px">
-        <img class="pf-photo" src="assets/photo_crib.jpg" alt="婴儿床.jpg">
+        <img loading="lazy" decoding="async" class="pf-photo" src="assets/photo_crib.webp" alt="婴儿床.jpg">
       </div></div>
       <div class="pf-hint">两个一模一样的婴儿并排躺在婴儿床里，胸口分别贴着「A」和「B」的标签。</div>
   `;
   } else if (v === "photo2") {
     inner = `
       <div class="photo-frame" data-action="toggle-photo-back"><div class="pf-img" style="height:220px">
-        <img class="pf-photo" src="assets/photo_merrygo.jpg" alt="旋转木马.jpg">
+        <img loading="lazy" decoding="async" class="pf-photo" src="assets/photo_merrygo.webp" alt="旋转木马.jpg">
         <div class="pf-hover-reveal">${svgIcon("note")} 照片背面：<br><b>「哥哥和弟弟，希望你们永远在一起。——妈妈」</b></div>
       </div></div>
       <div class="pf-hint">${svgIcon("mouse")} 点击 / 悬停查看背面 · 10岁，旋转木马。一个笑得开心（A），一个面无表情地看着镜头（B）。</div>
@@ -3069,7 +3352,7 @@ function remotePhoto(v) {
   } else {
     inner = `
       <div class="photo-frame" style="cursor:default"><div class="pf-img" style="height:220px">
-        <img class="pf-photo" src="assets/photo_family.jpg" alt="全家福.jpg">
+        <img loading="lazy" decoding="async" class="pf-photo" src="assets/photo_family.webp" alt="全家福.jpg">
       </div></div>
       <div class="pf-hint">16岁全家福。画面里只有林父、林母和一个少年——<br>但照片角落的<b>镜子里，反射出门口的另一个人影</b>，正冷冷地看着镜头。</div>
   `;
@@ -3138,9 +3421,38 @@ function remoteUsbA() {
         </div>
         <div class="ms-ps">PS（老张附言）：「密码还是老样子，你知道的。」</div>
         <div class="divider"></div>
-        <div style="font-size:12.5px;color:#8fb4d8;line-height:1.8">附件2 · 问卷扫描件（页边局部）：抬头「星都教育局」旁叠着一枚红章——<b style="color:var(--warn)">「辰天集团联合评审委员会」</b>。成人礼的评估，辰天在暗中把控。</div>
+        <div class="eml-attach" data-action="eml-attach2">
+          <div class="ea-badge">${svgIcon("file")}</div>
+          <div class="ea-body">
+            <div class="ea-name">附件2 · 问卷扫描件（页边局部）.jpg</div>
+            <div class="ea-meta">扫描件 · 328 KB · 抬头旁叠着一枚红章</div>
+          </div>
+          <span class="ea-open">查看 ↗</span>
+        </div>
+        <div class="eml-note">${svgIcon("spark")} 页边只扫到一半。那枚章盖在「星都教育局」的抬头旁边——成人礼的评估，辰天在暗中把控。</div>
       </div>
     </div>
+  </div>`;
+}
+// U盘A · 附件2：问卷扫描件的页边局部（纸面 + 抬头 + 压上去的红章）
+function scanPreviewHtml() {
+  return `<div class="scan-wrap">
+    <div class="scan-sheet">
+      <div class="scan-edge">扫描页边局部 · 右侧未采集</div>
+      <div class="scan-head">星都教育局</div>
+      <div class="scan-rule"></div>
+      <div class="scan-title">星都市民成人礼评估问卷 · B卷</div>
+      <div class="scan-meta">评估项目：心理稳定性　编号：CLC-2048-1015-B　年度：2066</div>
+      <div class="scan-table">
+        <div class="sr"><span>评估项</span><span>原始分</span><span>复核分</span></div>
+        <div class="sr"><span>情绪稳定性</span><span>90</span><span>35</span></div>
+        <div class="sr"><span>社会适应性</span><span>88</span><span>41</span></div>
+        <div class="sr"><span>综合结论</span><span>优选</span><span>冗余体</span></div>
+      </div>
+      <div class="scan-sign">评估员签字：李██　　日期：2066-08-20</div>
+      <div class="scan-stamp"><span class="ss-star">★</span><span class="ss-txt">辰天集团<br>联合评审<br>委员会</span></div>
+    </div>
+    <div class="scan-cap">成人礼的评估，辰天在暗中把控。</div>
   </div>`;
 }
 function remoteUsbB() {
@@ -3283,23 +3595,51 @@ function streetViewHtml() {
   return `<div class="app-root">
     <h3 class="app-title">星途 · 街景 <span class="tag">老城区 · 红星路34号</span></h3>
     <div class="street-view">
-      <img src="assets/Aurora.png" alt="极光网络会所旧址" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover;display:block">
+      <img loading="lazy" decoding="async" src="assets/Aurora.webp" alt="极光网络会所旧址" referrerpolicy="no-referrer" style="width:100%;height:100%;object-fit:cover;display:block">
     </div>
     <div class="pf-hint">「极光网络会所」，2011年停业。招牌上的电话，最后一位被人刮掉了。</div>
     ${done ? `<div class="hint-box">✓ 已拨通：最后一位是 <b>6</b>。自动应答的录音已存入语音助手（星灵）——邀请码就藏在里面。</div>` : `
     <div class="phone-panel">
-      <div style="font-size:12px;color:var(--dim);margin-bottom:8px">补全最后一位并拨号（0-9 逐个试）</div>
-      <div class="phone-num">6270 0835 ${dialed || "_"}</div>
-      <div class="dial-grid">
-        ${[1,2,3,4,5,6,7,8,9,0].map(n => `<button class="dial-key" data-action="dial" data-arg="${n}" ${dialed ? "disabled" : ""}>${n}</button>`).join("")}
-      </div>
-      <div class="phone-msg" id="phone-msg">${S.ui.map.phoneMsg || ""}</div>
+      <div style="font-size:12px;color:var(--dim);margin-bottom:8px">招牌上的号码（最后一位被刮掉了）</div>
+      <div class="phone-num">6270 0835 <span style="opacity:.4">?</span></div>
+      <div class="phone-msg">把这串号码记下来，去桌面上的「电话」应用手动输入。</div>
+      <button class="btn btn-primary" style="margin-top:12px" data-action="open-phone">${svgIcon("phone")} 打开电话拨号</button>
     </div>`}
     <div style="margin-top:10px"><button class="btn" data-action="map-city">← 返回城市地图</button></div>
   </div>`;
 }
 
 
+/* ---------------- 电话应用（第二章起可用） ----------------
+   玩家要在街景里记下那部老电话的号码，然后自己在这里手动输入拨号。
+   拨通后自动应答的录音会进入「语音助手 · 星灵」。 */
+function phoneFmt(n) {
+  const s = (n || "").replace(/\D/g, "");
+  return s.replace(/(\d{4})(\d{0,4})(\d{0,4})/, (m, a, b, c) => [a, b, c].filter(Boolean).join(" "));
+}
+function phoneHtml() {
+  const p = S.ui.phone;
+  const done = has("invite_known");
+  const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"];
+  return `<div class="app-root ph-app">
+    <h3 class="app-title"><span class="at-ic">${svgIcon("phone")}</span>电话</h3>
+    <div class="app-sub">星都SO 2066 · 语音网络在线</div>
+    <div class="ph-screen ${p.state}">
+      <div class="ph-display ${p.num ? "" : "empty"}">${p.num ? phoneFmt(p.num) : "输入号码"}</div>
+      <div class="ph-note">${p.msg || (done ? "最近通话：6270 0835 6 · 已接通" : "号码在街景招牌上，最后一位被刮掉了。")}</div>
+    </div>
+    <div class="ph-keys">
+      ${keys.map(k => `<button class="ph-key" data-action="ph-key" data-arg="${k}">${k}</button>`).join("")}
+    </div>
+    <div class="ph-bar">
+      <button class="btn" data-action="ph-del">删 除</button>
+      <button class="btn btn-primary" data-action="ph-call">拨 打</button>
+    </div>
+    <div class="ph-hint">${done
+      ? `${svgIcon("check")} 已拨通：6270 0835 6。自动应答录音已存入「语音助手 · 星灵」。`
+      : `${svgIcon("info")} 完整号码 = 招牌上的前 8 位 + 被刮掉的最后一位。`}</div>
+  </div>`;
+}
 function idScreen() {
   const mode = S.ui.id.mode;
   const dbBrandIcon = `<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#7fd0ff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:4px"><rect x="2.5" y="5" width="19" height="14" rx="2"/><circle cx="8.5" cy="11" r="2"/><path d="M5.5 16c.6-1.6 1.7-2.4 3-2.4s2.4.8 3 2.4M14 10h5M14 13.5h3.5"/></svg>`;
@@ -3370,7 +3710,7 @@ function idScreen() {
     </div>`;
   }
   const q = S.ui.id.archQuery;
-  let body = `<div class="db-empty">母体档案库 · 输入姓名或档案编号检索<br><span style="font-size:12px">提示：检索「林北辰」</span></div>`;
+  let body = `<div class="db-empty">母体档案库 · 输入姓名或档案编号检索</div>`;
   if (q && q.includes("北辰")) {
     body = `
     <div class="db-table-wrap">
@@ -3483,7 +3823,7 @@ function govHackResult() {
         <div style="font-size:12.5px;color:#c9b97c;line-height:1.9">观测站墙上星图旁，红笔圈着四个数字，下面压着一行点划：<b style="color:#f0e0a0;letter-spacing:2px;font-family:var(--mono,monospace)">----- ....- .---- ..---</b></div>
         <div style="display:flex;gap:12px;align-items:center;margin-top:10px;flex-wrap:wrap">
           <button class="btn" data-action="play-morse">▶ 播放摩斯音频</button>
-          <img src="assets/Morse Code Chart.png" alt="摩斯密码对照表" style="height:60px;border-radius:6px;border:1px solid #3a3018" title="摩斯密码对照表">
+          <img loading="lazy" decoding="async" src="assets/Morse Code Chart.webp" alt="摩斯密码对照表" style="height:60px;border-radius:6px;border:1px solid #3a3018" title="摩斯密码对照表">
         </div>
         <div style="font-size:11.5px;color:#8a7a58;margin-top:8px">对照上图翻译这行点划，得到的四位数字就是密码本。</div>
       </div>
@@ -3594,10 +3934,10 @@ function obsBribe() {
     <div class="gov-page">
       <div class="web-header"><h2>${svgIcon("table")} 评估员往来记录.csv</h2><span class="wh-url">ZHANG-PC · 桌面</span></div>
       <div class="gov-article">
-        <p style="font-size:12px;color:#587089">老张从中心内部渠道获得的转账记录摘要。所有金额单位：星元。</p>
-        <table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px">
+        <p style="font-size:12px;color:#8fb4d8">老张从中心内部渠道获得的转账记录摘要。所有金额单位：星元。</p>
+        <table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-top:10px;background:#0f2033;border-radius:8px;overflow:hidden">
           <thead>
-            <tr style="background:#1e3248;color:#bcdcf4">
+            <tr style="background:#1e3248;color:#d6ecff">
               <th style="padding:8px;border:1px solid #2a3a4a;text-align:left">日期</th>
               <th style="padding:8px;border:1px solid #2a3a4a;text-align:left">评估员</th>
               <th style="padding:8px;border:1px solid #2a3a4a;text-align:left">金额</th>
@@ -3626,7 +3966,7 @@ function obsWarehouseMap() {
       <div class="web-header"><h2>${svgIcon("photo")} 3号仓库_内部结构图.png</h2><span class="wh-url">ZHANG-PC · 桌面 · 手绘</span></div>
       <div class="gov-article">
         <p style="font-size:12px;color:#8fb4d8">老张手绘的仓库内部布局，已扫描存档。</p>
-        <img src="assets/3号仓库_内部结构图.png" alt="3号仓库内部结构图" style="width:100%;max-width:640px;border-radius:10px;border:1px solid #2a4a3a;display:block;margin:14px 0">
+        <img loading="lazy" decoding="async" src="assets/3号仓库_内部结构图.webp" alt="3号仓库内部结构图" style="width:100%;max-width:640px;border-radius:10px;border:1px solid #2a4a3a;display:block;margin:14px 0">
         <p style="font-size:12px;color:#8fb4d8">红笔标注：「配电室→监控室电源在同一回路」。通风管道可通行。</p>
         <p style="font-size:12px;color:#e8c4a0;margin-top:10px">图纸边缘签着一行小字：<b>「辰天建设（监理方）」</b>。切断配电室总闸的方案，是老张当年在辰天建设当保安时偷偷记下的。</p>
         <div style="margin-top:14px"><button class="btn" data-action="obs-back-pc">← 返回电脑桌面</button></div>
@@ -3738,6 +4078,7 @@ function remoteProgress() {
   return `LIN-PC 搜查进度：${a}/5 · 保险箱/U盘 ${b}/3`;
 }
 function objectiveText() {
+  if (EPI.isActive()) return EPI.objectiveText();
   if (S.difficulty !== "easy") return "（普通难度：任务目标与提示已关闭）";
   if (has("game_over")) return "（本局故事已完结）";
   if (has("choice_route1")) return "在新闻后台编辑器中，发布那篇报道";
@@ -3747,13 +4088,14 @@ function objectiveText() {
   if (has("gov_hacked")) return "用你手里那本密码本，解开刚下载的加密文件";
   if (has("obs_unlocked")) return "想办法进入星都政府的内部系统，取走那份官方文件";
   if (has("dm_read")) return "去老张留下的据点调查，把他藏起来的证据全部找出来";
-  if (has("ch1_done")) return has("invite_known") ? "用邀请码进入那个加密论坛，读完帖子并查收私信" : "照片和录音里还藏着没看的部分——顺着它们找到下一个接头点";
+  if (has("ch1_done")) return has("invite_known") ? "用邀请码进入加密论坛，读完三篇帖子并查收邮件" : "照片和录音里还藏着没看的部分——顺着它们找到下一个接头点";
   if (has("remote_granted")) return "搜查北辰的电脑（" + remoteProgress() + "）";
   if (prologueDone()) return "回复北辰，取得他电脑的远程访问权限";
   if (has("cloud_opened")) return `查看星云网盘中的线索（截图${["e_chat1","e_chat2","e_chat3"].filter(has).length}/3 · 照片${has("e_photo") ? "✓" : "…"} · 文本${has("e_note") ? "✓" : "…"}）`;
   return "读一读北辰的求助信，看看他为你留下了什么";
 }
 function objectiveList() {
+  if (EPI.isActive()) return EPI.objectiveList();
   const L = [];
   const add = (text, done, current) => L.push({ text, done, current });
   const anon = inbox.find(m => m.id === "m_anon");
@@ -3765,7 +4107,7 @@ function objectiveList() {
   add("【声纹】用星灵比对两段音频，确认它们是否来自同一个人", has("vp_ab"), has("video_watched") && !has("vp_ab"));
   add("留意照片里藏着的隐藏信息，顺藤摸瓜找到并拨通那部老电话", has("invite_known"), has("ch1_done") && !has("invite_known"));
   const forumAllRead = has("forum_read_top") && has("forum_read_b2") && has("forum_read_zhang");
-  add("用邀请码进入那个加密论坛，读帖并查收私信", has("dm_read") && forumAllRead, has("invite_known") && !(has("dm_read") && forumAllRead));
+  add("用邀请码进入加密论坛，读完三篇帖子并查收邮件", has("dm_read") && forumAllRead, has("invite_known") && !(has("dm_read") && forumAllRead));
   add("去老张留下的据点调查，取走他留下的证据", has("obs_unlocked"), has("dm_read") && !has("obs_unlocked"));
   add("进入星都政府的内部系统，获取官方实施文件", has("gov_hacked"), has("obs_unlocked") && !has("gov_hacked"));
   add("用找到的密码本，解开那份加密的官方实施文件", has("gov_decrypted"), has("gov_hacked") && !has("gov_decrypted"));
@@ -3776,6 +4118,8 @@ function objectiveList() {
   return L;
 }
 function objectivesHtml() {
+  const epiHtml = EPI.objectivesHtml();   // 后日谈期间由后日谈模块接管
+  if (epiHtml) return epiHtml;
   if (S.difficulty !== "easy") {
     return `<div class="app-root">
     <h3 class="app-title">任务目标</h3>
@@ -3801,7 +4145,9 @@ function renderObjectives() {
   const ot = $("#objective-text");
   if (ot) ot.textContent = objectiveText();
   const panel = $("#objective-panel");
-  if (panel) panel.style.display = (S.difficulty === "easy") ? "" : "none";
+  if (panel) panel.style.display = (S.difficulty === "easy" || EPI.isActive()) ? "" : "none";
+  // 后日谈邮件拍：面板上常驻一句「读完点 X」
+  EPI.updateObjectiveHint();
   const hintBtn = $("#tb-hint");
   if (hintBtn) hintBtn.classList.toggle("hidden", S.difficulty !== "easy");
   const ol = $("#objective-list");
@@ -4092,6 +4438,8 @@ function showEnding(n) {
     rb.onclick = () => { $("#ending-screen").classList.add("hidden"); S.flags.game_over = false; S.flags.choice_route1 = false; renderObjectives(); showChoice(); };
     inner.insertBefore(rb, inner.querySelector("button"));
   }
+  // 结局一：解锁并给出「后日谈 · 灯塔」入口（入口由后日谈模块插入）
+  if (n === 1) EPI.onEnding(n);
 }
 
 
@@ -4124,7 +4472,7 @@ function onFlag(f) {
       setTimeout(() => toast("图 星途地图", "老城区红星路34号已标记在地图上，去<b>星途</b>打开街景看看。", "", () => openApp("map")), 700);
       break;
     case "invite_known":
-      setTimeout(() => toast("话 拨通了", "自动应答录音已存入星灵：邀请码是——<b>二零四八</b>。", ""), 500);
+      setTimeout(() => toast("话 拨通了", "自动应答的录音已存入<b>语音助手 · 星灵</b>——去听一遍，邀请码就念在里面。", "", () => openApp("voice"), 10000), 600);
       if (S.windows.voice) refreshApp("voice");
       break;
     case "video_watched":
@@ -4136,10 +4484,13 @@ function onFlag(f) {
       showChapter("第二章：地下暗涌",
         "评估问卷造假、3号仓库、出逃预案……线索指向星都水面之下的世界。进入「暗涌」论坛，你需要那个邀请码——EXIF坐标、老城区、一部刮掉最后一位的电话。");
       break;
+    case "forum_open":
+      // 论坛里不再放站内私信：那封没有署名的信改从邮箱送达
+      deliverMail("zhang_mail", 2200);
+      break;
     case "dm_read":
+      // 这里原本会自动弹两条主线提示；按用户要求（提示改为玩家点「✦ 提示」主动触发）已移除。
       setClockDate("2066-10-14"); setClock("18:00");
-      toast("望 主线 · 天象观测站", "D_张提到的「老地方」——市郊天象观测站。老张的旧电脑里存着密码本与三份证据，先去那里。在星途地图上点击标记，或搜索「天象观测站」。", "warn", () => openApp("map"), 9000);
-      setTimeout(() => toast("网 星搜 · 政务内网", "拿到密码本后，搜索「政务内网」入侵政府后台，解开《双子计划_实施方案_2048.docx》。", "", () => openApp("browser"), 12000), 3000);
       break;
     case "gov_decrypted":
       showChapter("第三章：双重人格",
@@ -4205,19 +4556,39 @@ function showChoice() {
 }
 
 
+// 加密频道：有新消息时自动滚动到底（玩家上滚看历史时不会被打断）
+function scrollChatToEnd(body) {
+  const sc = body.querySelector("#chat-scroll");
+  if (!sc) return;
+  const n = (S.ui.chat.msgs || []).length;
+  const last = S.ui.chat._rendered || 0;
+  S.ui.chat._rendered = n;
+  if (n > last) requestAnimationFrame(() => { sc.scrollTop = sc.scrollHeight; });
+}
+// 星搜换页时回到顶部（点开帖子 / 打开新网址都从页首开始看）
+function resetBrowserScroll(body) {
+  const pg = body.querySelector(".browser-page");
+  if (pg) pg.scrollTop = 0;
+  body.scrollTop = 0;
+}
 function refreshApp(appId) {
   const body = document.querySelector(`[data-body="${appId}"]`);
   if (!body) return;
+  // 渲染星搜实例时，把「当前实例」临时切到它，渲染完再切回去
+  const isBr = isBrowserId(appId);
+  const prevBr = S.ui.browserId;
+  if (isBr) S.ui.browserId = appId;
   const scroller = body.querySelector(".app-root") || body;
-  const st = scroller.scrollTop;
+  const st = isBr ? 0 : scroller.scrollTop;
   if (appId === "mail") body.innerHTML = mailHtml();
   else if (appId === "cloud") body.innerHTML = S.ui.cloud.view ? cloudView(S.ui.cloud.view) : cloudHome();
-  else if (appId === "browser") body.innerHTML = renderBrowser();
+  else if (isBr) { body.innerHTML = renderBrowser(); resetBrowserScroll(body); }
   else if (appId === "remote") body.innerHTML = remoteScreen();
-  else if (appId === "chat") body.innerHTML = chatHtml();
+  else if (appId === "chat") { body.innerHTML = chatHtml(); scrollChatToEnd(body); }
   else if (appId === "map") body.innerHTML = mapHtml();
   else if (appId === "id") body.innerHTML = idScreen();
   else if (appId === "voice") body.innerHTML = voiceHtml();
+  else if (appId === "phone") body.innerHTML = phoneHtml();
   else if (appId === "cms") body.innerHTML = cmsScreen();
   else if (appId === "log") body.innerHTML = logHtml();
   else if (appId === "obj") body.innerHTML = objectivesHtml();
@@ -4226,9 +4597,12 @@ function refreshApp(appId) {
     const s2 = body.querySelector(".app-root") || body;
     requestAnimationFrame(() => { if (s2.isConnected) s2.scrollTop = st; });
   }
+  if (isBr) S.ui.browserId = prevBr;
 }
 
 function docReaderHtml() {
+  const epiDoc = EPI.activeDocHtml();   // 后日谈：终刊辞 / 遗稿
+  if (epiDoc) return epiDoc;
   return `<div class="app-root doc-reader">
     <div class="doc-toolbar">
       <span class="doc-file">${svgIcon("file")} 城中村拆迁手记_试读版.docx</span>
@@ -4271,10 +4645,13 @@ function mailHtml() {
       }
       return `<button class="btn btn-primary" data-action="${a.act}" ${disabled}>${a.label}</button><span class="locked-note">${extra}</span>`;
     }).join("");
+    // 后日谈推进类邮件：在正文下方常驻一句操作提示
+    const eTip = EPI.mailTipFor(sel.id);
     readPane = `
       <h3>${esc(sel.subject)}</h3>
       <div class="mail-meta">发件人：${esc(sel.from)} &nbsp;|&nbsp; ${esc(sel.time)}</div>
-      <div class="mail-content">${esc(sel.body)}</div>
+      ${eTip ? `<div class="epi-mail-tip">${svgIcon("letter")} ${eTip}</div>` : ""}
+      <div class="mail-content${sel.html ? " rich" : ""}">${sel.html || esc(sel.body)}</div>
       <div class="mail-actions">${acts}</div>`;
   }
   return `<div class="mail-layout">
@@ -4290,6 +4667,16 @@ function mailHtml() {
   </div>`;
 }
 
+// 星搜的浏览历史（每个实例一份）：后退 / 前进按钮靠它
+function browserHistPush() {
+  const br = S.ui.browser;
+  if (!br.hist) { br.hist = []; br.hi = -1; }
+  if (br.hist[br.hi] === br.page) return;
+  br.hist = br.hist.slice(0, br.hi + 1);
+  br.hist.push(br.page);
+  br.hi = br.hist.length - 1;
+  while (br.hist.length > 40) { br.hist.shift(); br.hi--; }
+}
 function renderBrowser() {
   const p = S.ui.browser.page;
   if (p === "forum_top") setTimeout(() => setFlag("forum_read_top"), 200);
@@ -4311,11 +4698,14 @@ function renderBrowser() {
     forum_b2: "anyong.onion/t/90417", forum_zhang: "anyong.onion/t/91002", noresult: "about:blank",
     obs_locked: "map.xd.net/place/observatory", obs_article: "bbs.xd.net/thread/obs_2031",
     observatory: "map.xd.net/place/observatory · 实景",
+    gov_hack: "gov.xd.net/admin",
+    obs_shutdown: "observer.xd.news",
     filtered_promo: "search.xd.net/filtered", notfound_place: "search.xd.net/notfound/place",
     notfound_li: "search.xd.net/notfound/li", notfound_zhang: "search.xd.net/notfound/zhang",
     notfound_gov: "search.xd.net/notfound/gov",
   };
   S.ui.browser.pageUrl = urlMap[p] || "sos.xd.net";
+  browserHistPush();
   return fn();
 }
 
@@ -4324,6 +4714,9 @@ document.addEventListener("click", (e) => {
   const t = e.target.closest("[data-action]");
   if (!t) return;
   const act = t.dataset.action, arg = t.dataset.arg;
+  // 点在哪个星搜窗口里，就把「当前实例」指向它（多窗口各管各的）
+  const winEl = t.closest(".window");
+  if (winEl && isBrowserId(winEl.dataset.app)) S.ui.browserId = winEl.dataset.app;
   const R = {
     "start-game": () => {
       S.difficulty = (arg === "normal") ? "normal" : "easy";
@@ -4426,6 +4819,7 @@ document.addEventListener("click", (e) => {
         const bar = $("#quick-replay-bar");
         if (bar && done.length) bar.classList.remove("hidden");
       } catch (e) {}
+      EPI.showReplayEntry();
     },
     "author-to-intro": () => {
       closeModal();
@@ -4438,6 +4832,7 @@ document.addEventListener("click", (e) => {
         const bar = $("#quick-replay-bar");
         if (bar && done.length) bar.classList.remove("hidden");
       } catch (e) {}
+      EPI.showReplayEntry();
     },
     "author-note": () => {
       openModal(`<div class="pass-box" style="text-align:center;max-width:620px;width:94%">
@@ -4464,6 +4859,11 @@ document.addEventListener("click", (e) => {
       m.unread = false;
       S.ui.mail.sel = arg; S.ui.mail.acctSel = "me";
       refreshApp("mail"); renderIcons();
+      // 那封没署名的信：读完才算「查收」
+      if (arg === "m_zhang_mail") setFlag("dm_read");
+      // 后日谈：邮件拍不做任何自动跳转——必须由玩家读完信、点 X 关闭窗口才会推进
+      // 这里只负责把「已读 / 未读」的状态同步到任务目标面板上的那句提示
+      if (EPI.isActive()) renderObjectives();
     },
     "open-cloud": () => { openApp("cloud"); },
     "open-mail-from-cms": () => { openApp("mail"); S.ui.mail.sel = "m_anon"; refreshApp("mail"); },
@@ -4510,6 +4910,10 @@ document.addEventListener("click", (e) => {
       }
     },
     "open-cloud-from-cms": () => openApp("cloud"),
+    "gov-file": () => {
+      if (has("gov_hacked")) return;
+      toast("锁 权限不足", "文件库只对管理员会话开放。密码已经轮换了——但登录框本身，也许可以绕过。", "warn", null, 8000);
+    },
     "hack-gov": () => {
       if (has("gov_hacked")) return;
       if (!has("obs_unlocked")) { toast("锁 需要密码本", "先去天象观测站拿到密码本，再回来入侵政务内网。", "warn"); return; }
@@ -4529,7 +4933,7 @@ document.addEventListener("click", (e) => {
       setTimeout(() => {
         setFlag("gov_hacked");
         toast("夹 入侵成功", "已获取官方内部文件（AES-256 加密）。用观测站拿到的密码本解开它。", "danger");
-        refreshApp("browser");
+        refreshApp(brId());
         ding();
       }, 2200);
     },
@@ -4577,12 +4981,19 @@ document.addEventListener("click", (e) => {
       S._passForceHint = "2049年3月12日——北辰第一次开口叫「妈妈」的日子 → 20490312";
       passwordModal({
         title: "林父的保险箱",
-        hint: `密码提示：「北辰第一次开口说话的日子」。<br>${svgIcon("spark")} 加密频道里，北辰告诉过你：2049年3月12日。`,
+        hint: `密码提示：「北辰第一次开口说话的日子」。`,
         placeholder: "8位数字（YYYYMMDD）",
         numeric: true,
         check: v => v === "20490312",
         onOk: () => { setFlag("safe_opened"); S.ui.remote.view = "safe_inside"; refreshApp("remote"); tryCh1Done(); },
       });
+    },
+    "eml-attach2": () => {
+      openModal(`<div class="scan-modal">
+        <div class="scan-modal-head">${svgIcon("file")} 附件2 · 问卷扫描件（页边局部）.jpg <span class="tag">只读</span></div>
+        ${scanPreviewHtml()}
+        <div class="pass-buttons" style="justify-content:center"><button class="btn" data-action="pass-cancel">关 闭</button></div>
+      </div>`);
     },
     "restore-letter": () => {
       setFlag("letter_read"); tryCh1Done();
@@ -4661,7 +5072,7 @@ document.addEventListener("click", (e) => {
       if (k === "0412") {
         setFlag("gov_decrypted");
         toast("开 解密成功", "密码本校验通过，《双子计划_实施方案_2048.docx》已可读。", "warn", null, 6000);
-        refreshApp("browser");
+        refreshApp(brId());
       } else {
         beepErr();
         const e = $("#gov-dec-err");
@@ -4676,11 +5087,11 @@ document.addEventListener("click", (e) => {
       S.ui.obs.view = "outside";
       S.ui.browser.page = "observatory";
       openApp("browser");
-      refreshApp("browser");
+      refreshApp(brId());
     },
     "obs-enter-pc": () => {
       S.ui.obs.view = "pc";
-      refreshApp("browser");
+      refreshApp(brId());
     },
     "obs-look-around": () => {
       const box = $("#obs-around");
@@ -4692,7 +5103,7 @@ document.addEventListener("click", (e) => {
         S.ui.obs.unlocked = true;
         S.ui.obs.view = "pc_home";
         ding();
-        refreshApp("browser");
+        refreshApp(brId());
         toast("开 电脑解锁", "老张的电脑打开了。桌面上有三个文件——日记、账目、结构图。", "warn");
       } else {
         beepErr();
@@ -4704,13 +5115,61 @@ document.addEventListener("click", (e) => {
     },
     "obs-file": () => {
       S.ui.obs.view = arg;
-      refreshApp("browser");
+      refreshApp(brId());
       if (arg === "diary") beep(660, .1, .04);
       if (arg === "bribe") beep(440, .1, .04);
       if (arg === "warehouse_map") beep(550, .1, .04);
     },
-    "obs-back-pc": () => { S.ui.obs.view = "pc_home"; refreshApp("browser"); },
-    "obs-back-outside": () => { S.ui.obs.view = "outside"; refreshApp("browser"); },
+    "obs-back-pc": () => { S.ui.obs.view = "pc_home"; refreshApp(brId()); },
+    "obs-back-outside": () => { S.ui.obs.view = "outside"; refreshApp(brId()); },
+    "open-phone": () => openApp("phone"),
+    "ph-key": () => {
+      const p = S.ui.phone;
+      if (p.state === "calling") return;
+      if (p.num.length >= 12) return;
+      p.num += String(arg);
+      p.msg = ""; p.state = "";
+      beep(680, .05, .04);
+      refreshApp("phone");
+    },
+    "ph-del": () => {
+      const p = S.ui.phone;
+      if (p.state === "calling") return;
+      p.num = p.num.slice(0, -1);
+      p.msg = ""; p.state = "";
+      beep(480, .04, .03);
+      refreshApp("phone");
+    },
+    "ph-call": () => {
+      const p = S.ui.phone;
+      if (p.state === "calling") return;
+      const n = p.num.replace(/\D/g, "");
+      if (n.length < 8) { p.msg = "号码还没输完。"; beepErr(); refreshApp("phone"); return; }
+      if (n === "627008356") {
+        p.state = "calling";
+        p.msg = "正在呼叫 " + phoneFmt(n) + "…";
+        refreshApp("phone");
+        beepRing();
+        setTimeout(() => {
+          p.state = "connected";
+          p.msg = "接通了。对面没有人说话，只有一段循环播放的录音。";
+          if (!has("invite_known")) setFlag("invite_known");
+          refreshApp("phone");
+        }, 2800);
+        return;
+      }
+      p.state = "failed";
+      if (n.length === 9 && n.slice(0, 8) === "62700835") {
+        S.ui.map.tried = S.ui.map.tried || [];
+        const last = n.slice(-1);
+        if (!S.ui.map.tried.includes(last)) S.ui.map.tried.push(last);
+        p.msg = `「您拨打的号码是空号。」——忙音。（已试过：${S.ui.map.tried.join("、")}）`;
+      } else {
+        p.msg = "「您拨打的号码是空号，请查证后再拨。」";
+      }
+      beepErr();
+      refreshApp("phone");
+    },
     "dial": () => {
       const d = String(arg);
       beep(600, .08, .06);
@@ -4730,7 +5189,7 @@ document.addEventListener("click", (e) => {
     },
 
     
-    "forum-enter": () => { closeModal(); S.ui.browser.page = "forum"; refreshApp("browser"); },
+    "forum-enter": () => { closeModal(); S.ui.browser.page = "forum"; refreshApp(brId()); },
     "forum-gate": () => {
       const v = ($("#invite-input").value || "").trim();
       if (v === "2048") {
@@ -4750,23 +5209,44 @@ document.addEventListener("click", (e) => {
     
     "do-search": () => {
       if (arg) { doSearch(arg); return; }
-      const el = $("#search-input"); if (el) doSearch(el.value);
+      const el = (t.closest(".browser-page") || document).querySelector("#search-input");
+      if (el) doSearch(el.value);
     },
     "quick-search": () => doSearch(arg),
-    "open-page": () => { S.ui.browser.page = arg; refreshApp("browser"); },
-    "gov-sub": () => { S.ui.govSub = arg || "crlcs"; refreshApp("browser"); },
-    "center-sub": () => { S.ui.centerSub = arg || "home"; refreshApp("browser"); },
-    "maint": () => toast("维 页面维护中", "该板块正在维护，暂未开放。", "warn", null, 3500),
-    "go-home": () => { S.ui.browser.page = "home"; S.ui.browser.query = ""; S.ui.browser.results = null; refreshApp("browser"); },
-    "browser-back": () => {
-      if (S.ui.browser.page !== "home") {
-        S.ui.browser.page = "home"; S.ui.browser.query = ""; S.ui.browser.results = null; refreshApp("browser");
-        beep(500, .05, .03);
-      }
+    "br-go": () => {
+      const inp = (t.closest(".browser-top") || document).querySelector(".br-url");
+      if (inp) browserGo(inp.value);
     },
-    "browser-forward": () => { beep(400, .05, .02); },
-    "browser-refresh": () => { refreshApp("browser"); beep(600, .08, .03); toast("刷 已刷新", "页面已重新加载。", "", null, 2000); },
-    "clear-search-history": () => { S.searchHistory = []; refreshApp("browser"); },
+    "open-page": () => { S.ui.browser.page = arg; refreshApp(brId()); },
+    "gov-sub": () => { S.ui.govSub = arg || "crlcs"; refreshApp(brId()); },
+    "center-sub": () => { S.ui.centerSub = arg || "home"; refreshApp(brId()); },
+    "maint": () => toast("维 页面维护中", "该板块正在维护，暂未开放。", "warn", null, 3500),
+    "go-home": () => { S.ui.browser.page = "home"; S.ui.browser.query = ""; S.ui.browser.results = null; refreshApp(brId()); },
+    "browser-back": () => {
+      const br = S.ui.browser;
+      if (!br.hist || br.hi <= 0) { beep(300, .05, .02); return; }
+      br.hi--; br.page = br.hist[br.hi];
+      refreshApp(brId());
+      beep(500, .05, .03);
+    },
+    "browser-forward": () => {
+      const br = S.ui.browser;
+      if (!br.hist || br.hi >= br.hist.length - 1) { beep(300, .05, .02); return; }
+      br.hi++; br.page = br.hist[br.hi];
+      refreshApp(brId());
+      beep(520, .05, .03);
+    },
+    "browser-new": () => {
+      let n = 2;
+      while (S.windows["browser#" + n]) n++;
+      const id = "browser#" + n;
+      S.ui.browsers[id] = brBlank();
+      S.ui.browserId = id;
+      openApp(id);
+      toast("搜 新窗口", "又开了一个星搜窗口——两个窗口的页面互不影响。", "", null, 5000);
+    },
+    "browser-refresh": () => { refreshApp(brId()); beep(600, .08, .03); toast("刷 已刷新", "页面已重新加载。", "", null, 2000); },
+    "clear-search-history": () => { S.searchHistory = []; refreshApp(brId()); },
 
     
     "id-mode": () => { S.ui.id.mode = arg; refreshApp("id"); },
@@ -4883,9 +5363,12 @@ document.addEventListener("click", (e) => {
     "mon-step": () => monStep(parseInt(arg, 10)),
 
     
+    /* 后日谈的按钮（epi-start / epi-log-echo / epi-archive …）由 END/epilogue.js 接管 */
+
     "pass-try": () => tryPassword(),
     "pass-cancel": () => closeModal(),
   };
+  if (EPI.handleAction(act, arg)) { e.stopPropagation(); return; }
   if (R[act]) { e.stopPropagation(); R[act](); }
 });
 
@@ -4897,8 +5380,20 @@ function checkPrologue() {
 document.addEventListener("keydown", (e) => {
   if (e.key !== "Enter") return;
   const t = e.target;
-  if (!t || !t.id) return;
-  if (t.id === "search-input") doSearch(t.value);
+  if (!t) return;
+  // 地址栏没有 id（每个星搜窗口各一个），必须在 id 判断之前拦下来
+  if (t.classList && t.classList.contains("br-url")) {
+    const win = t.closest(".window");
+    if (win && isBrowserId(win.dataset.app)) S.ui.browserId = win.dataset.app;
+    browserGo(t.value);
+    return;
+  }
+  if (!t.id) return;
+  if (t.id === "search-input") {
+    const win = t.closest(".window");
+    if (win && isBrowserId(win.dataset.app)) S.ui.browserId = win.dataset.app;
+    doSearch(t.value);
+  }
   else if (t.id === "cloud-pass") document.querySelector('[data-action="cloud-unlock"]')?.click();
   else if (t.id === "pass-input") tryPassword();
   else if (t.id === "invite-input") document.querySelector('[data-action="forum-gate"]')?.click();
@@ -4955,9 +5450,11 @@ function logLine() {
 function logHtml() {
   let seed = "";
   for (let i = 0; i < 7; i++) seed += logLine();
+  // 后日谈第三拍：日志里多出三行「信标」，最后一行可点击
+  const epiBlock = EPI.logBlock();
   return `<div class="term-root">
     <div class="term-head"><span class="th-dot"></span>system-monitor · root@xingdu-os · 全部行为匿名上报</div>
-    <div class="term-body" id="log-body">${seed}</div>
+    <div class="term-body" id="log-body">${seed}${epiBlock}</div>
   </div>`;
 }
 setInterval(() => {
@@ -5044,4 +5541,13 @@ boot();
       if (bar) bar.classList.remove("hidden");
     }
   } catch (e) {}
+  EPI.showReplayEntry();
+  EPI.init();
 })();
+
+
+
+/* 后日谈《灯塔》的全部实现已独立到 END/epilogue.js（2026-10-18 拆分）：
+   剧情文本 / 三封专属邮件 / 七拍状态机 / 演出幕与黑幕的 DOM / 目标面板文案，
+   本文件只保留上面的 EPI 调用点。删除 END/epilogue.js 与 END/epilogue.css
+   即回到「没有后日谈」的主游戏。 */
