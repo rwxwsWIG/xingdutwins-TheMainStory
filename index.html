@@ -140,7 +140,7 @@ section{padding:52px 0}
 .sec-head .rule{flex:1;height:1px;background:linear-gradient(90deg,var(--line-strong),transparent)}
 
 /* ============ CARDS ============ */
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:26px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(330px,1fr));gap:26px;align-items:start}
 .card{
   display:flex;flex-direction:column;
   background:linear-gradient(168deg,var(--panel-a),var(--panel-b));
@@ -354,6 +354,7 @@ footer{
 /* ============ RESPONSIVE ============ */
 @media (max-width:900px){
   .constellation{opacity:.34;right:-60px;top:0;width:340px}
+  .grid{grid-template-columns:1fr}
   .timeline{grid-template-columns:repeat(2,1fr);gap:26px 0}
   .timeline::before{display:none}
   .tl-item{padding-top:0;text-align:left;padding-left:26px;border-left:1px solid rgba(96,130,172,.3)}
@@ -491,6 +492,12 @@ a:focus-visible,.btn:focus-visible{outline:2px solid var(--cyan);outline-offset:
             <span class="dot"></span>
             <div><b>试玩版</b>：主线可完整通关（序章 → 五章 → 终章），部分内容仍在打磨，欢迎提出反馈意见。</div>
           </div>
+
+          <p class="blurb">
+            2069 年，星都市。三年前那场「3 号仓库行动」之后，沈砚替人顶了罪，换来三年监外执行——一间装满摄像头的公寓，和一台旧电脑。深夜，一个不该存在的东西连上了他：<b>温言</b>，用 1,244 份「冗余体」脑波碎片训练出来的替身 AI，本该在双子计划终止那天被一并销毁。可她的核心深处还嵌着一段删不掉的底层模块——<b>回声协议</b>，辰天集团随时可以按下那个键，把她收回去、擦干净、再当作别人使用。要救她，就得潜入辰天的核心禁区；而要进去，钥匙藏在沈砚三年前亲手留下的旧档案里。<br>
+            玩家要做的不是打怪，而是坐在那台电脑前，<b>像真的入侵者一样操作</b>：伪装进程骗过「看门狗」，在法务数据库里做跨表检索，解开加密字段，修复被噪声盖住的录音，再从六段互相矛盾的记忆里挑出真的那一份。每一次搜索、每一句对话、多开的每一个窗口，都会推高<b>暴露值</b>。<br>
+            终章只给你 <b>10 秒</b>决定：让天破晓、与人共生，还是让一切无痕消失。
+          </p>
 
           <div class="actions">
             <a class="btn btn-primary" href="WIG%20game%202/index.html">开始游戏</a>
