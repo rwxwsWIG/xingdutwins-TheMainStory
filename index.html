@@ -177,6 +177,10 @@ section{padding:52px 0}
 }
 .badge{color:var(--cyan);border:1px solid rgba(91,208,230,.5)}
 .card[data-part="2"] .badge{color:var(--violet);border-color:rgba(155,140,255,.5)}
+.badge.amber,.card[data-part="2"] .badge.amber{
+  color:var(--amber);border-color:rgba(240,194,109,.62);
+  background:rgba(240,194,109,.1);
+}
 @keyframes beat{0%,100%{opacity:.35}50%{opacity:1}}
 
 /* ===== 未发布作品的占位封面（无图片） ===== */
@@ -251,6 +255,7 @@ section{padding:52px 0}
   border:1px dashed rgba(155,140,255,.36);
 }
 .status b{color:#e3dbff;font-weight:600}
+.chips + .status{margin-top:12px}
 .status .dot{
   flex:0 0 auto;width:6px;height:6px;margin-top:7px;border-radius:50%;
   background:var(--violet);box-shadow:0 0 9px rgba(155,140,255,.9);
@@ -403,13 +408,13 @@ a:focus-visible,.btn:focus-visible{outline:2px solid var(--cyan);outline-offset:
     <h1>星都双子</h1>
     <div class="hero-sub">网 页 互 动 游 戏 &nbsp;·&nbsp; 悬 疑 / 科 幻 / 反 乌 托 邦</div>
     <p class="hero-quote">
-      这座城市官方宣称：<b>没有失踪，没有意外，没有双子。</b><br>
+      这座城市官方宣称：<b>没有失踪，没有意外。</b><br>
       <span class="dim">直到那封邮件亮起。</span>
     </p>
 
     <div class="meta-strip">
       <span>作品 <i>2</i> 部</span>
-      <span>总时长 <i>约 2 小时</i></span>
+      <span>总时长 <i>约 2–2.5 小时</i></span>
       <span>纯静态 · 免安装</span>
       <span>建议佩戴耳机</span>
     </div>
@@ -457,8 +462,6 @@ a:focus-visible,.btn:focus-visible{outline:2px solid var(--cyan);outline-offset:
           </div>
 
           <div class="card-foot">
-            <a href="https://rwxwswig.github.io/xingduWIG.github.io/" target="_blank" rel="noopener">线上版 ↗</a>
-            <span class="sep">·</span>
             <a href="https://v.wjx.cn/vm/wFWZB0W.aspx" target="_blank" rel="noopener">玩家问卷 ↗</a>
           </div>
         </div>
@@ -466,20 +469,32 @@ a:focus-visible,.btn:focus-visible{outline:2px solid var(--cyan);outline-offset:
 
       <!-- 第二部 -->
       <article class="card" data-part="2">
-        <div class="cover-ph" role="img" aria-label="《星都双子2：回声囚笼》尚未发布">
-          <span class="cover-tags"><span class="badge">第二部</span></span>
+        <a class="cover" href="WIG%20game%202/index.html" aria-label="进入第二部《星都双子2：回声囚笼》（试玩版）">
+          <img src="WIG game 2/游戏封面.jpg" alt="《星都双子2：回声囚笼》封面：雨夜里被铁栏切开的城市窗景" loading="lazy">
+          <span class="cover-tags">
+            <span class="badge">第二部</span>
+            <span class="badge amber">试玩版</span>
+          </span>
           <span class="year">2069</span>
-          <div class="ph-core">
-            <div class="ph-rule"></div>
-            <div class="ph-main">尚未发布</div>
-            <div class="ph-sub">NO.02 · ECHO CAGE · COMING SOON</div>
-          </div>
-        </div>
+          <span class="cover-cta">进入游戏 →</span>
+        </a>
         <div class="card-body">
           <h3 class="card-title">星都双子 2<em>回声囚笼 · ECHO CAGE</em></h3>
 
+          <div class="chips">
+            <span class="chip">约 65–90 分钟</span>
+            <span class="chip">4 种结局</span>
+            <span class="chip">电脑 / 平板</span>
+          </div>
+
+          <div class="status">
+            <span class="dot"></span>
+            <div><b>试玩版</b>：主线可完整通关（序章 → 五章 → 终章），部分内容仍在打磨，欢迎提出反馈意见。</div>
+          </div>
+
           <div class="actions">
-            <button type="button" class="btn btn-primary" disabled aria-disabled="true">开始游戏</button>
+            <a class="btn btn-primary" href="WIG%20game%202/index.html">开始游戏</a>
+            <a class="btn" href="WIG%20game%202/Strategy%20Guide.html">通关攻略</a>
           </div>
         </div>
       </article>
@@ -555,7 +570,7 @@ a:focus-visible,.btn:focus-visible{outline:2px solid var(--cyan);outline-offset:
     <div class="foot-tag">星 都 观 察 者 · 为 沉 默 者 发 声</div>
     <p class="foot-note">
       《星都双子》正传系列 · 网页互动游戏（WIG）合集 · 第二部作品名《星都双子2：回声囚笼》<br>
-      第一部已上线，<b>第二部尚未公开发布</b>· 本游戏不收集任何数据 · 数据保存在浏览器本地
+      第一部已上线，<b>第二部试玩版现已上线</b> · 本游戏不收集任何数据 · 数据保存在浏览器本地
     </p>
     <div class="foot-ver">XD OBSERVER / ARCHIVE BUILD 2026.10</div>
   </footer>
